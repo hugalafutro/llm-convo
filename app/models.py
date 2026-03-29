@@ -16,6 +16,11 @@ class ChatRequest(BaseModel):
     num_exchanges: int = Field(3, ge=1, le=30)
 
 
+class SetModelRequest(BaseModel):
+    endpoint_num: int = Field(..., ge=1, le=2)
+    model_id: str
+
+
 class ClearRequest(BaseModel):
     pass
 

@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
 from . import BASE_DIR
-from .models import ChatRequest, ConnectRequest, Turn
+from .models import ChatRequest, ConnectRequest, SetModelRequest, Turn
 from .services import build_messages, check_endpoint, resolve_model_name, stream_llm
 from .session import get_or_create_session, get_session, session_count
 
@@ -132,6 +132,16 @@ async def chat(request: Request):
         yield {"event": "done", "data": json.dumps({"conversation_done": True})}
 
     return EventSourceResponse(event_stream())
+
+
+@router.post("/set-model")
+async def set_model(body: SetModelRequest, request: Request):
+    state = get_session(request)
+    if state is None:
+        return Response("Session not found", status_code=400)
+    cfg = state.endpoint1 if body.endpoint_num == 1 else state.endpoint2
+    cfg.model_id = body.model_id
+    return {"status": "ok", "model": cfg.model_id}
 
 
 @router.post("/clear")
