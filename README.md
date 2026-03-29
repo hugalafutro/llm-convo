@@ -94,3 +94,5 @@ I successfully managed to implement some stuff while continuing the conversation
 
 The *almost* whole conversation exported to pdf: [chat-LLM Convo development.pdf](https://github.com/user-attachments/files/17450061/chat-LLM.Convo.development.pdf)
 *(I had to remove posts with pictures as I was running out of quota and later using model which could not ingest images. So if there is a jarring disconnect or a missing reply it was a reply with picture.)*
+
+About two years later the whole app was rewritten in [Cursor](https://cursor.com)—same chaos, different cockpit; I still mostly just press buttons and hope.
