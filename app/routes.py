@@ -13,7 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from . import BASE_DIR
 from .models import ChatRequest, ConnectRequest, SetModelRequest, Turn
-from .services import build_messages, check_endpoint, resolve_model_name, stream_llm
+from .services import build_messages, check_endpoint, list_models, stream_llm
 from .session import get_or_create_session, get_session, session_count
 
 log = logging.getLogger(__name__)
@@ -41,12 +41,14 @@ async def connect(body: ConnectRequest, request: Request, response: Response):
     if not reachable:
         return {"status": "error", "message": f"Failed to connect to Endpoint {body.endpoint_num}"}
 
-    cfg.model_id = await resolve_model_name(cfg)
+    models = await list_models(cfg)
+    cfg.model_id = models[0] if models else "Unknown Model"
     log.info("Endpoint %d connected: %s (model: %s)", body.endpoint_num, cfg.url, cfg.model_id)
     return {
         "status": "success",
         "message": f"Connected to Endpoint {body.endpoint_num}",
         "model": cfg.model_id,
+        "models": models,
     }
 
 
