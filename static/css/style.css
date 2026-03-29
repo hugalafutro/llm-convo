@@ -320,6 +320,41 @@ button {
     color: var(--accent-2);
 }
 
+.message-reasoning {
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.message-reasoning > summary {
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.message-reasoning[open] > summary {
+    margin-bottom: 0.35rem;
+}
+
+.message-reasoning-body {
+    padding: 0.5rem 0.65rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    max-height: 40vh;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+
+.message-reasoning-body p {
+    margin-bottom: 0.4em;
+}
+
+.message-reasoning-body p:last-child {
+    margin-bottom: 0;
+}
+
 .message-body {
     font-size: 0.9rem;
     line-height: 1.6;

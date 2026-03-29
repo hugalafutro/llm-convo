@@ -7,6 +7,7 @@
     let endpoint2Connected = false;
     let currentMessageEl = null;
     let currentContent = "";
+    let currentReasoning = "";
     let currentSpeaker = "";
     let turnIndex = 0;
 
@@ -208,6 +209,26 @@
         return `<p>${html}</p>`;
     }
 
+    function ensureReasoningDetails() {
+        if (!currentMessageEl) {
+            return null;
+        }
+        let details = currentMessageEl.querySelector(".message-reasoning");
+        if (!details) {
+            details = document.createElement("details");
+            details.className = "message-reasoning";
+            const summary = document.createElement("summary");
+            summary.textContent = "Thinking";
+            details.appendChild(summary);
+            const inner = document.createElement("div");
+            inner.className = "message-reasoning-body";
+            details.appendChild(inner);
+            const body = currentMessageEl.querySelector(".message-body");
+            currentMessageEl.insertBefore(details, body);
+        }
+        return details.querySelector(".message-reasoning-body");
+    }
+
     // ===== Chat Streaming =====
     function startChat() {
         const prompt = dom.promptInput.value.trim();
@@ -224,6 +245,7 @@
 
         currentMessageEl = null;
         currentContent = "";
+        currentReasoning = "";
         currentSpeaker = "";
         turnIndex = 0;
 
@@ -258,6 +280,17 @@
             dom.conversation.appendChild(msgDiv);
             currentMessageEl = msgDiv;
             currentContent = "";
+            currentReasoning = "";
+            scrollToBottom();
+        });
+
+        eventSource.addEventListener("reasoning", (e) => {
+            const data = JSON.parse(e.data);
+            currentReasoning += data.reasoning;
+            const inner = ensureReasoningDetails();
+            if (inner) {
+                inner.innerHTML = renderMarkdown(currentReasoning);
+            }
             scrollToBottom();
         });
 
@@ -281,6 +314,7 @@
             }
             currentMessageEl = null;
             currentContent = "";
+            currentReasoning = "";
             scrollToBottom();
         });
 
@@ -307,10 +341,17 @@
     }
 
     function finishCurrentMessage() {
-        if (currentMessageEl && currentContent) {
-            const body = currentMessageEl.querySelector(".message-body");
-            if (body) {
-                body.innerHTML = renderMarkdown(currentContent);
+        if (!currentMessageEl) {
+            return;
+        }
+        const body = currentMessageEl.querySelector(".message-body");
+        if (body && currentContent) {
+            body.innerHTML = renderMarkdown(currentContent);
+        }
+        if (currentReasoning) {
+            const inner = ensureReasoningDetails();
+            if (inner) {
+                inner.innerHTML = renderMarkdown(currentReasoning);
             }
         }
     }
@@ -333,6 +374,7 @@
         dom.initialPromptText.textContent = "";
         currentMessageEl = null;
         currentContent = "";
+        currentReasoning = "";
         turnIndex = 0;
 
         try {

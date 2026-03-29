@@ -104,7 +104,12 @@ async def chat(request: Request):
                     if await request.is_disconnected():
                         return
 
-                    if "content" in chunk:
+                    if "reasoning" in chunk:
+                        yield {
+                            "event": "reasoning",
+                            "data": json.dumps({"reasoning": chunk["reasoning"]}),
+                        }
+                    elif "content" in chunk:
                         full_response += chunk["content"]
                         yield {
                             "event": "content",

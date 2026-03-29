@@ -14,26 +14,34 @@ _http_timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
 
 
 
-def _delta_stream_text(delta: dict) -> str:
-    """Text to show for one SSE delta (OpenAI shape + NanoGPT reasoning fields)."""
-    for key in ("content", "reasoning", "reasoning_content"):
-        val = delta.get(key)
-        if not val:
-            continue
-        if isinstance(val, str):
-            return val
-        if isinstance(val, list):
-            parts: list[str] = []
-            for item in val:
-                if isinstance(item, dict):
-                    t = item.get("text")
-                    if t:
-                        parts.append(t if isinstance(t, str) else str(t))
-                elif isinstance(item, str):
-                    parts.append(item)
-            return "".join(parts)
-        return str(val)
-    return ""
+def _normalize_delta_value(val) -> str:
+    if val is None or val == "":
+        return ""
+    if isinstance(val, str):
+        return val
+    if isinstance(val, list):
+        parts: list[str] = []
+        for item in val:
+            if isinstance(item, dict):
+                t = item.get("text")
+                if t:
+                    parts.append(t if isinstance(t, str) else str(t))
+            elif isinstance(item, str):
+                parts.append(item)
+        return "".join(parts)
+    return str(val)
+
+
+def _delta_reasoning_and_content(delta: dict) -> tuple[str, str]:
+    """Split thinking/reasoning from visible assistant content for one SSE delta."""
+    reasoning_parts: list[str] = []
+    for key in ("reasoning", "reasoning_content"):
+        piece = _normalize_delta_value(delta.get(key))
+        if piece:
+            reasoning_parts.append(piece)
+    reasoning = "".join(reasoning_parts)
+    content = _normalize_delta_value(delta.get("content"))
+    return reasoning, content
 
 
 async def list_models(cfg: EndpointConfig) -> list[str]:
@@ -117,8 +125,9 @@ async def stream_llm(
 ) -> AsyncIterator[dict]:
     """Stream chat completion chunks from an OpenAI-compatible endpoint.
 
-    Yields dicts of two kinds:
-    - ``{"content": "..."}`` for each text delta
+    Yields dicts:
+    - ``{"reasoning": "..."}`` for thinking-stream deltas (optional)
+    - ``{"content": "..."}`` for visible assistant text
     - ``{"done": True, "total_tokens": N, "tps": float}`` when finished
     """
     headers = {"Content-Type": "application/json", **_auth_headers(cfg)}
@@ -162,15 +171,19 @@ async def stream_llm(
                         continue
                     choice0 = choices[0]
                     delta = choice0.get("delta") or {}
-                    text = _delta_stream_text(delta)
-                    if not text:
+                    reasoning, content = _delta_reasoning_and_content(delta)
+                    if reasoning:
+                        total_tokens += len(reasoning.split())
+                        yield {"reasoning": reasoning}
+                    if content:
+                        total_tokens += len(content.split())
+                        yield {"content": content}
+                    if not reasoning and not content:
                         msg = choice0.get("message") or {}
                         raw = msg.get("content")
                         if isinstance(raw, str) and raw.strip():
-                            text = raw
-                    if text:
-                        total_tokens += len(text.split())
-                        yield {"content": text}
+                            total_tokens += len(raw.split())
+                            yield {"content": raw}
 
     except httpx.HTTPStatusError as exc:
         log.error("HTTP error from %s: %s", cfg.url, exc)
