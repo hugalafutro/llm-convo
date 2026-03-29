@@ -1,0 +1,6 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+httpx>=0.28,<1
+sse-starlette>=2.2,<3
+jinja2>=3.1,<4
+python-multipart>=0.0.18,<1
