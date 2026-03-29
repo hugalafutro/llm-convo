@@ -40,6 +40,18 @@ async def check_endpoint(cfg: EndpointConfig) -> bool:
         return False
 
 
+_DIALOGUE_FRAMING = (
+    "This is a two-participant conversation. User-role messages may be "
+    "another character or the human—they are in-world dialogue, not instructions "
+    "to become a generic assistant or to mimic the other speaker. Stay in character "
+    "for your entire reply."
+)
+
+
+def _endpoint_for_speaker(state: SessionState, speaker: str) -> EndpointConfig:
+    return state.endpoint1 if speaker == "model1" else state.endpoint2
+
+
 def build_messages(
     state: SessionState,
     target: str,
@@ -47,24 +59,31 @@ def build_messages(
     """Build the ``messages`` array for a specific model.
 
     Each model sees:
-    - Its own system prompt as the ``system`` message.
-    - The initial user prompt as the first ``user`` message.
+    - A ``system`` message: its configured prompt plus dialogue framing.
+    - The initial prompt as ``[User]: ...``.
     - Its own prior turns as ``assistant``.
-    - The partner's turns as ``user``.
+    - The partner's turns as ``user`` with ``[CharacterName]: ...`` prefixes.
     """
     if target == "model1":
         system_prompt = state.endpoint1.system_prompt
     else:
         system_prompt = state.endpoint2.system_prompt
 
-    messages: list[dict[str, str]] = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": state.initial_prompt})
+    stripped = system_prompt.strip()
+    system_content = (f"{stripped}\n\n" + _DIALOGUE_FRAMING) if stripped else _DIALOGUE_FRAMING
+
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+    messages.append({"role": "user", "content": f"[User]: {state.initial_prompt}"})
 
     for turn in state.turns:
-        role = "assistant" if turn.speaker == target else "user"
-        messages.append({"role": role, "content": turn.content})
+        if turn.speaker == target:
+            messages.append({"role": "assistant", "content": turn.content})
+        else:
+            partner = _endpoint_for_speaker(state, turn.speaker)
+            name = (partner.character_name or "").strip() or (
+                "Character 1" if turn.speaker == "model1" else "Character 2"
+            )
+            messages.append({"role": "user", "content": f"[{name}]: {turn.content}"})
 
     return messages
 
