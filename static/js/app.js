@@ -115,11 +115,10 @@
                 if (num === 1) endpoint1Connected = true;
                 else endpoint2Connected = true;
 
-                const badge = $(`#endpoint${num}-model`);
-                if (data.model) {
-                    badge.textContent = data.model;
-                    badge.classList.remove("hidden");
-                }
+                const select = $(`#endpoint${num}-model`);
+                populateModelSelect(select, data.models || [], data.model);
+                select.classList.remove("hidden");
+                select.disabled = false;
                 toast(`Endpoint ${num} connected (${data.model || "unknown"})`, "success");
             } else {
                 btn.classList.remove("connected");
@@ -143,6 +142,43 @@
 
     function updateSendState() {
         dom.sendBtn.disabled = !(endpoint1Connected && endpoint2Connected);
+    }
+
+    function populateModelSelect(selectEl, models, selectedModel) {
+        selectEl.innerHTML = "";
+        models.forEach((id) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = id;
+            if (id === selectedModel) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
+        if (!models.length) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No models available";
+            selectEl.appendChild(opt);
+        }
+    }
+
+    async function onModelChange(num) {
+        const select = $(`#endpoint${num}-model`);
+        const modelId = select.value;
+        try {
+            await fetch("/set-model", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endpoint_num: num, model_id: modelId }),
+            });
+            saveField(`endpoint${num}-model`, modelId);
+        } catch (err) {
+            toast(`Failed to set model: ${err.message}`, "error");
+        }
+    }
+
+    function setModelSelectsDisabled(disabled) {
+        $(`#endpoint1-model`).disabled = disabled || !endpoint1Connected;
+        $(`#endpoint2-model`).disabled = disabled || !endpoint2Connected;
     }
 
     // ===== Simple Markdown Rendering (XSS-safe) =====
@@ -194,6 +230,7 @@
         dom.sendBtn.disabled = true;
         dom.stopBtn.disabled = false;
         dom.typingIndicator.classList.remove("hidden");
+        setModelSelectsDisabled(true);
 
         const params = new URLSearchParams({ prompt, num_exchanges: numExchanges });
         eventSource = new EventSource(`/chat?${params}`);
@@ -286,6 +323,7 @@
         dom.sendBtn.disabled = !(endpoint1Connected && endpoint2Connected);
         dom.stopBtn.disabled = true;
         dom.typingIndicator.classList.add("hidden");
+        setModelSelectsDisabled(false);
         if (notify) toast("Generation stopped", "info");
     }
 
@@ -323,6 +361,10 @@
         $$("#connect1, #connect2").forEach((btn) => {
             const num = parseInt(btn.dataset.endpoint, 10);
             btn.addEventListener("click", () => connectEndpoint(num));
+        });
+
+        [1, 2].forEach((num) => {
+            $(`#endpoint${num}-model`).addEventListener("change", () => onModelChange(num));
         });
 
         dom.sendBtn.addEventListener("click", startChat);
