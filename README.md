@@ -8,17 +8,17 @@
 
 ## Features
 
-- **Two endpoints** — Each side has its own URL, optional API key, character name, and optional system prompt. **Connect** checks the backend by calling `GET {your-base-url}/v1/models`.
-- **Model picker** — After a successful connect, a dropdown lists models from that endpoint; your choice is remembered in the browser.
-- **Turn-based dialogue** — You set how many **exchange rounds** to run (1–30). Each round is both models speaking once, in order. The full thread (plus your initial prompt) is sent back into context so the conversation stays coherent.
-- **Streaming** — Replies stream in as they are generated. **Stop** closes the stream; **Clear** wipes the transcript and resets server-side turn state.
-- **Reasoning-friendly** — If the backend sends thinking tokens (`reasoning` / `reasoning_content`), they appear in a collapsible **Thinking** block above the visible answer.
-- **Per-message stats** — Footer on each completion: timestamp, model id, token count, and tokens per second.
-- **Markdown in bubbles** — Basic formatting (code, bold, italics, paragraphs) with escaping so random model output does not run script in your page.
-- **Dark and light themes** — Toggle in the header; preference is saved locally.
-- **Toasts and connection state** — Inline feedback when things connect, fail, or finish; connect buttons show when each side is live.
-- **Local persistence** — Endpoint fields, keys, names, prompts, and theme live in **browser localStorage** (not on the server).
-- **Docker-ready** — Compose file exposes the UI and includes a health check against `/health`.
+- **Two endpoints**: Each side has its own URL, optional API key, character name, and optional system prompt. **Connect** checks the backend by calling `GET {your-base-url}/v1/models`.
+- **Model picker**: After a successful connect, a dropdown lists models from that endpoint; your choice is remembered in the browser.
+- **Turn-based dialogue**: You set how many **exchange rounds** to run (1–30). Each round is both models speaking once, in order. The full thread (plus your initial prompt) is sent back into context so the conversation stays coherent.
+- **Streaming**: Replies stream in as they are generated. **Stop** closes the stream; **Clear** wipes the transcript and resets server-side turn state.
+- **Reasoning-friendly**: If the backend sends thinking tokens (`reasoning` / `reasoning_content`), they appear in a collapsible **Thinking** block above the visible answer.
+- **Per-message stats**: Footer on each completion: timestamp, model id, token count, and tokens per second.
+- **Markdown in bubbles**: Basic formatting (code, bold, italics, paragraphs) with escaping so random model output does not run script in your page.
+- **Dark and light themes**: Toggle in the header; preference is saved locally.
+- **Toasts and connection state**: Inline feedback when things connect, fail, or finish; connect buttons show when each side is live.
+- **Local persistence**: Endpoint fields, keys, names, prompts, and theme live in **browser localStorage** (not on the server).
+- **Docker-ready**: Compose file exposes the UI and includes a health check against `/health`.
 
 ## Run locally
 
@@ -57,7 +57,7 @@ Then open **`http://localhost:5234`** (host port **5234** is mapped to the app o
 
 ## Pointing at your backends
 
-The app always calls `{base_url}/v1/models` and `{base_url}/v1/chat/completions`. Enter the **base URL only**—do **not** append `/v1` yourself, or the paths will be wrong.
+The app always calls `{base_url}/v1/models` and `{base_url}/v1/chat/completions`. Enter the **base URL only**. Do **not** append `/v1` yourself, or the paths will be wrong.
 
 Examples that work with many setups (adjust host and port):
 
@@ -76,11 +76,11 @@ You are an AI with a distinct personality. Respond naturally to the given prompt
 
 ## License
 
-Licensed under the MIT License — see [LICENSE](LICENSE).
+Licensed under the MIT License: see [LICENSE](LICENSE).
 
 ## Outputs, screenshots, and not-lawyers
 
-*My “lawyer” was still an LLM. This is not legal advice—just common sense wrapped in anxiety.*
+*My “lawyer” was still an LLM. This is not legal advice: just common sense wrapped in anxiety.*
 
 This project is a hobby experiment. Anything the models say comes from **their** weights and your backends, not from me. I do not endorse or control that text. You are responsible for how you use the app, what you run against it, and what you screenshot or post. There is no promise that replies are accurate, safe, or appropriate. For warranty and liability limits on the **software itself**, read the MIT license.
 
@@ -95,4 +95,4 @@ I successfully managed to implement some stuff while continuing the conversation
 The *almost* whole conversation exported to pdf: [chat-LLM Convo development.pdf](https://github.com/user-attachments/files/17450061/chat-LLM.Convo.development.pdf)
 *(I had to remove posts with pictures as I was running out of quota and later using model which could not ingest images. So if there is a jarring disconnect or a missing reply it was a reply with picture.)*
 
-About two years later the whole app was rewritten in [Cursor](https://cursor.com)—same chaos, different cockpit; I still mostly just press buttons and hope.
+About two years later the whole app was rewritten in [Cursor](https://cursor.com). Same chaos, different cockpit; I still mostly just press buttons and hope.
