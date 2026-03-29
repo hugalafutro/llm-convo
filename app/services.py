@@ -13,6 +13,29 @@ log = logging.getLogger(__name__)
 _http_timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
 
 
+
+def _delta_stream_text(delta: dict) -> str:
+    """Text to show for one SSE delta (OpenAI shape + NanoGPT reasoning fields)."""
+    for key in ("content", "reasoning", "reasoning_content"):
+        val = delta.get(key)
+        if not val:
+            continue
+        if isinstance(val, str):
+            return val
+        if isinstance(val, list):
+            parts: list[str] = []
+            for item in val:
+                if isinstance(item, dict):
+                    t = item.get("text")
+                    if t:
+                        parts.append(t if isinstance(t, str) else str(t))
+                elif isinstance(item, str):
+                    parts.append(item)
+            return "".join(parts)
+        return str(val)
+    return ""
+
+
 async def list_models(cfg: EndpointConfig) -> list[str]:
     headers = _auth_headers(cfg)
     try:
@@ -137,11 +160,17 @@ async def stream_llm(
                     choices = chunk.get("choices")
                     if not choices:
                         continue
-                    delta = choices[0].get("delta") or {}
-                    content = delta.get("content") or ""
-                    if content:
-                        total_tokens += len(content.split())
-                        yield {"content": content}
+                    choice0 = choices[0]
+                    delta = choice0.get("delta") or {}
+                    text = _delta_stream_text(delta)
+                    if not text:
+                        msg = choice0.get("message") or {}
+                        raw = msg.get("content")
+                        if isinstance(raw, str) and raw.strip():
+                            text = raw
+                    if text:
+                        total_tokens += len(text.split())
+                        yield {"content": text}
 
     except httpx.HTTPStatusError as exc:
         log.error("HTTP error from %s: %s", cfg.url, exc)
