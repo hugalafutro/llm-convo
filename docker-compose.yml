@@ -5,12 +5,17 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5234:5000"
+      - "5234:8000"
     volumes:
-      - ./app.py:/app/app.py
+      - ./app:/app/app
       - ./templates:/app/templates
+      - ./static:/app/static
     environment:
-      - FLASK_APP=app.py
-      - FLASK_ENV=development
-      - FLASK_RUN_HOST=0.0.0.0
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,16 +1,14 @@
-FROM python:3.9-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy the application files
-COPY app.py /app/
-COPY templates /app/templates
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --no-cache-dir Flask requests
+COPY app/ app/
+COPY templates/ templates/
+COPY static/ static/
 
-EXPOSE 5000
+EXPOSE 8000
 
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-
-CMD ["flask", "run"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
