@@ -1,5 +1,92 @@
 # LLM Convo
-***`I have no idea what I'm doing it was the LLMs I swear`***
+
+*Most of this was stitched together by language models. I nod along when people explain the code. If something catches fire, that is between you and your firewall.*
+
+**LLM Convo** is a small web app that sits between two OpenAI-compatible chat APIs. You connect each side to its own backend (local or remote), type an opening line, and watch the two models trade replies in real time. The server streams the dialogue to your browser with Server-Sent Events.
+
+![LLM Convo](screenshot-new.png)
+
+## Features
+
+- **Two endpoints** — Each side has its own URL, optional API key, character name, and optional system prompt. **Connect** checks the backend by calling `GET {your-base-url}/v1/models`.
+- **Model picker** — After a successful connect, a dropdown lists models from that endpoint; your choice is remembered in the browser.
+- **Turn-based dialogue** — You set how many **exchange rounds** to run (1–30). Each round is both models speaking once, in order. The full thread (plus your initial prompt) is sent back into context so the conversation stays coherent.
+- **Streaming** — Replies stream in as they are generated. **Stop** closes the stream; **Clear** wipes the transcript and resets server-side turn state.
+- **Reasoning-friendly** — If the backend sends thinking tokens (`reasoning` / `reasoning_content`), they appear in a collapsible **Thinking** block above the visible answer.
+- **Per-message stats** — Footer on each completion: timestamp, model id, token count, and tokens per second.
+- **Markdown in bubbles** — Basic formatting (code, bold, italics, paragraphs) with escaping so random model output does not run script in your page.
+- **Dark and light themes** — Toggle in the header; preference is saved locally.
+- **Toasts and connection state** — Inline feedback when things connect, fail, or finish; connect buttons show when each side is live.
+- **Local persistence** — Endpoint fields, keys, names, prompts, and theme live in **browser localStorage** (not on the server).
+- **Docker-ready** — Compose file exposes the UI and includes a health check against `/health`.
+
+## Run locally
+
+You need **Python 3.12+**.
+
+```bash
+git clone https://github.com/hugalafutro/llm-convo.git
+cd llm-convo
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Open `http://127.0.0.1:8000`.
+
+## Docker
+
+```bash
+git clone https://github.com/hugalafutro/llm-convo.git
+cd llm-convo
+docker compose build
+docker compose up -d
+```
+
+Follow logs:
+
+```text
+llm-convo  | INFO:     Started server process [1]
+llm-convo  | INFO:     Waiting for application startup.
+llm-convo  | INFO:     Application startup complete.
+llm-convo  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+Then open **`http://localhost:5234`** (host port **5234** is mapped to the app on port **8000** inside the container).
+
+## Pointing at your backends
+
+The app always calls `{base_url}/v1/models` and `{base_url}/v1/chat/completions`. Enter the **base URL only**—do **not** append `/v1` yourself, or the paths will be wrong.
+
+Examples that work with many setups (adjust host and port):
+
+- [LM Studio](https://github.com/lmstudio-ai): `http://127.0.0.1:1234`
+- [koboldcpp](https://github.com/LostRuins/koboldcpp): `http://192.168.x.x:5001` (use the host/port where the OpenAI-compatible API is served)
+
+Click **Connect** for each side. When both show connected, enter your opening prompt and press **Send** (or Enter).
+
+## Example system prompt
+
+Optional copy-paste for both characters while testing:
+
+```text
+You are an AI with a distinct personality. Respond naturally to the given prompt, as if in a real conversation. Keep your reply focused and concise, ideally around 50-75 words. Don't continue the conversation beyond your response or roleplay as anyone else. Engage with the topic, add your perspective, or ask a relevant question, but always conclude your response naturally. Avoid overly formal or flowery language - aim for a casual, friendly tone.
+```
+
+## License
+
+Licensed under the MIT License — see [LICENSE](LICENSE).
+
+## Outputs, screenshots, and not-lawyers
+
+*My “lawyer” was still an LLM. This is not legal advice—just common sense wrapped in anxiety.*
+
+This project is a hobby experiment. Anything the models say comes from **their** weights and your backends, not from me. I do not endorse or control that text. You are responsible for how you use the app, what you run against it, and what you screenshot or post. There is no promise that replies are accurate, safe, or appropriate. For warranty and liability limits on the **software itself**, read the MIT license.
+
+---
+
+## How this repo was built
 
 I used 2 (later 3) LLMs (Claude Sonnet 3.5 and chatgpt-4o-latest (later locally running Qwen2.5-Coder-7B-Instruct)) to write an app that would let 2 AI LLMs with openai compatible api endpoints talk to each other. I have zero experience with python. After running out of daily allowance on both Anthropic and OpenAI I got what's in this repo more or less. Was more of an experiment if I can make an app without any experience more than anything else. I used [open-webui](https://github.com/open-webui/open-webui) as frontend to "develop" this.
 
@@ -7,89 +94,3 @@ I successfully managed to implement some stuff while continuing the conversation
 
 The *almost* whole conversation exported to pdf: [chat-LLM Convo development.pdf](https://github.com/user-attachments/files/17450061/chat-LLM.Convo.development.pdf)
 *(I had to remove posts with pictures as I was running out of quota and later using model which could not ingest images. So if there is a jarring disconnect or a missing reply it was a reply with picture.)*
-
-# TESTED with [koboldcpp](https://github.com/LostRuins/koboldcpp), [LM Studio](https://github.com/lmstudio-ai)
-
-- Dark/Light theme
-- Number of Exchanges between 3 and 30
-- Streaming/interrupting of responses
-- Endpoint addresses and System prompts are stored in browser Local Storage
-- Timestamps, model names, tokens/second - oh my!
-- (Optional) different system prompt for each endpoint
-- Buttons change colors with state
-
-Involving in third LLM (locally running Qwen2.5-Coder-7B-Instruct) I was able to bribe it with enough *virtual head pats* to implement sending of the whole conversation with the prompt. Previously the models would only directly respond to the other models last output. Now they "remember". Or so my programmers tell me.
-
-I used the following system prompt for both while testing:
-```
-You are an AI with a distinct personality. Respond naturally to the given prompt, as if in a real conversation. Keep your reply focused and concise, ideally around 50-75 words. Don't continue the conversation beyond your response or roleplay as anyone else. Engage with the topic, add your perspective, or ask a relevant question, but always conclude your response naturally. Avoid overly formal or flowery language - aim for a casual, friendly tone.
-```
-
-
-![image_2024-10-20_12-35-59](https://github.com/user-attachments/assets/74b355ea-6613-4865-aebc-df419f36e5c2)
-
-
-
-
-# Try it out in docker:
-```
-git clone https://github.com/hugalafutro/llm-convo.git
-cd llm-convo
-docker compose build
-docker compose up -d
-```
-
-
-Check docker logs `docker compose logs -f`:
-```
-llm-convo  |  * Serving Flask app 'app.py'
-llm-convo  |  * Debug mode: off
-llm-convo  | WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
-llm-convo  |  * Running on all addresses (0.0.0.0)
-llm-convo  |  * Running on http://127.0.0.1:5000
-llm-convo  |  * Running on http://172.26.0.2:5000
-llm-convo  | Press CTRL+C to quit
-```
-
-
-- Visit `http://0.0.0.0:5234`
-- For [koboldcpp](https://github.com/LostRuins/koboldcpp) enter the Endpoint address in format `http://address:port/v1` i.e. `http://192.168.1.163:5001/v1`
-- For [LM Studio](https://github.com/lmstudio-ai) enter the Endpoint address in format `http://address:port` i.e. `http://192.168.1.163:5001`
-- press Connect Endpoint button.
-- You should get an popup connection succesful and the Endpoint button will turn green.
-- Once both Endpoint buttons are green it's go time.
-- Write the Intial Prompt in the bottom text input area and click the Send button/press Enter.
-
----
-
-*My lawyer (Command-R LLM) advised me to include this disclaimer considering the uncertainty of the generated outputs. Future is wild, man.*
-# Legal Disclaimer
-
-Please note that the use of this application and the interactions between the two LLMs (Large Language Models) are intended for educational and experimental purposes only. The developer of this app bears no responsibility for the content generated by the LLMs or any subsequent actions taken based on their outputs.
-
-By using this application, you acknowledge and agree to the following:
-
-## User Responsibility
-It is the sole responsibility of the user to monitor and control the conversations between the LLMs. You understand that LLMs generate text based on patterns learned from vast amounts of data, and their outputs may occasionally contain inappropriate, offensive, or inaccurate information.
-
-## Content Disclaimer
-The developer does not endorse, promote, or condone any specific viewpoints, opinions, or statements made by the LLMs. Any illegal, or harmful content generated during the interactions is not reflective of the developer's beliefs or intentions.
-
-## Screenshot and Sharing
-If you choose to screenshot or share any generated content, you do so at your own risk. The developer is not liable for any consequences arising from the distribution or interpretation of such content. It is your responsibility to ensure that the content shared complies with relevant laws and ethical standards.
-
-## No Guarantee of Accuracy
-LLMs are not infallible, and their responses may contain errors, biases, or misleading information. The developer makes no warranty or guarantee regarding the accuracy, reliability, or suitability of the generated outputs for any purpose.
-
-## Indemnification
-By using this application, you agree to indemnify and hold the developer harmless from any claims, damages, or liabilities arising from your use of the app, including but not limited to any legal actions resulting from the content generated by the LLMs.
-
-## Termination of Use
-The developer reserves the right to terminate access to this application for any user who violates these terms or engages in activities that are illegal, harmful, or unethical.
-
-## Local Use
-This application is designed for local use, and the developer is not responsible for any issues or legal implications arising from the deployment or distribution of the LLMs in other contexts.
-
-Remember, as a user, it is crucial to exercise good judgment and ethical considerations when interacting with and sharing content generated by LLMs.
-
-Please read these terms carefully before using the application. By proceeding, you acknowledge that you have understood and accepted the legal disclaimer.
