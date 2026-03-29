@@ -115,11 +115,14 @@ async def stream_llm(
                         log.debug("Skipping non-JSON line: %s", line)
                         continue
 
-                    if "choices" in chunk:
-                        content = chunk["choices"][0].get("delta", {}).get("content", "")
-                        if content:
-                            total_tokens += len(content.split())
-                            yield {"content": content}
+                    choices = chunk.get("choices")
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta") or {}
+                    content = delta.get("content") or ""
+                    if content:
+                        total_tokens += len(content.split())
+                        yield {"content": content}
 
     except httpx.HTTPStatusError as exc:
         log.error("HTTP error from %s: %s", cfg.url, exc)
