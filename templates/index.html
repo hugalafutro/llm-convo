@@ -4,391 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Convo</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        :root {
-            --bg-color: #1e1e1e;
-            --text-color: #e0e0e0;
-            --input-bg-color: #333;
-            --input-border-color: #444;
-            --conversation-bg-color: #2a2a2a;
-            --message-bg-color: #3a3a3a;
-            --button-ready-bg-color: #4CAF50;
-            --button-pending-bg-color: #ff4a4a;
-            --button-inactive-bg-color: #888888;
-            --button-text-color: white;
-        }
-
-        body.light-mode {
-            --bg-color: #f0f0f0;
-            --text-color: #333;
-            --input-bg-color: #fff;
-            --input-border-color: #ccc;
-            --conversation-bg-color: #fff;
-            --message-bg-color: #e9e9e9;
-            --button-ready-bg-color: #4CAF50;
-            --button-pending-bg-color: #ff4a4a;
-            --button-inactive-bg-color: #888888;
-            --button-text-color: white;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        #chat-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .endpoint-setup {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .endpoint {
-            width: 48%;
-        }
-        .endpoint input, .endpoint textarea {
-            width: 100%;
-            margin-bottom: 10px;
-            background-color: var(--input-bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--input-border-color);
-            padding: 5px;
-        }
-        .endpoint textarea {
-            height: 100px;
-            resize: vertical;
-        }
-        #conversation {
-            height: 500px;
-            overflow-y: scroll;
-            border: 1px solid var(--input-border-color);
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: var(--conversation-bg-color);
-        }
-        #initial-prompt-text {
-            margin: 10px;
-            padding: 10px;
-            background-color: var(--message-bg-color);
-            color: var(--text-color);
-            border-radius: 10px;
-        }
-
-        #prompt-container {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-            gap: 10px;
-        }
-        #prompt {
-            flex-grow: 1;
-            margin-right: 10px;
-            background-color: var(--input-bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--input-border-color);
-            padding: 5px;
-        }
-        button {
-            background-color: var(--button-ready-bg-color);
-            border: none;
-            color: var(--button-text-color);
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .stop-btn {
-            background-color: var(--button-inactive-bg-color);
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .message {
-            background-color: var(--message-bg-color);
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .message-info {
-            font-size: 0.8em;
-            color: #888;
-            text-align: right;
-            margin-top: 5px;
-        }
-        .connect-btn {
-            padding: 10px 20px;
-            color: var(--button-text-color);
-            cursor: pointer;
-            background-color: var(--button-pending-bg-color);
-            border: none;
-        }
-        #num-exchanges-container {
-            margin-bottom: 10px;
-        }
-        #num-exchanges {
-            width: 100%;
-        }
-        .theme-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-        .theme-toggle input {
-            display: none;
-        }
-        .theme-toggle label {
-            cursor: pointer;
-            padding: 5px 10px;
-            background-color: var(--input-bg-color);
-            color: var(--text-color);
-            border-radius: 15px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .theme-toggle label::before {
-            content: '🌙';
-            margin-right: 5px;
-        }
-        .theme-toggle input:checked + label::before {
-            content: '☀️';
-        }
-        .theme-toggle input:checked + label {
-            background-color: var(--button-ready-bg-color);
-            color: var(--button-text-color);
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div id="chat-container">
+    <div id="toast-container" aria-live="polite"></div>
+
+    <header>
         <h1>LLM Convo</h1>
-        <div class="theme-toggle">
-            <input type="checkbox" id="theme-switch">
-            <label for="theme-switch"></label>
-        </div>
-        <div class="endpoint-setup">
-            <div class="endpoint">
-                <input type="text" id="endpoint1" placeholder="Enter Endpoint 1 URL">
-                <textarea id="system-prompt1" placeholder="Enter System Prompt for Endpoint 1 (optional)"></textarea>
-                <button id="connect-endpoint1" class="connect-btn" onclick="connectEndpoint(1)">Connect Endpoint 1</button>
+        <button id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+            <span class="theme-icon"></span>
+        </button>
+    </header>
+
+    <main id="chat-container">
+        <section class="endpoint-setup" aria-label="Endpoint configuration">
+            <div class="endpoint-card" data-endpoint="1">
+                <h2>Endpoint 1</h2>
+                <label for="endpoint1-url">URL</label>
+                <input type="url" id="endpoint1-url" placeholder="http://host:port/v1" autocomplete="url">
+
+                <label for="endpoint1-key">API Key <span class="optional">(optional)</span></label>
+                <input type="password" id="endpoint1-key" placeholder="sk-...">
+
+                <label for="endpoint1-name">Character Name</label>
+                <input type="text" id="endpoint1-name" placeholder="Character 1" value="Character 1">
+
+                <label for="endpoint1-prompt">System Prompt <span class="optional">(optional)</span></label>
+                <textarea id="endpoint1-prompt" placeholder="You are..." rows="4"></textarea>
+
+                <button id="connect1" class="connect-btn" type="button" data-endpoint="1">
+                    <span class="spinner hidden"></span>
+                    <span class="btn-text">Connect</span>
+                </button>
+                <span id="endpoint1-model" class="model-badge hidden"></span>
             </div>
-            <div class="endpoint">
-                <input type="text" id="endpoint2" placeholder="Enter Endpoint 2 URL">
-                <textarea id="system-prompt2" placeholder="Enter System Prompt for Endpoint 2 (optional)"></textarea>
-                <button id="connect-endpoint2" class="connect-btn" onclick="connectEndpoint(2)">Connect Endpoint 2</button>
+
+            <div class="endpoint-card" data-endpoint="2">
+                <h2>Endpoint 2</h2>
+                <label for="endpoint2-url">URL</label>
+                <input type="url" id="endpoint2-url" placeholder="http://host:port/v1" autocomplete="url">
+
+                <label for="endpoint2-key">API Key <span class="optional">(optional)</span></label>
+                <input type="password" id="endpoint2-key" placeholder="sk-...">
+
+                <label for="endpoint2-name">Character Name</label>
+                <input type="text" id="endpoint2-name" placeholder="Character 2" value="Character 2">
+
+                <label for="endpoint2-prompt">System Prompt <span class="optional">(optional)</span></label>
+                <textarea id="endpoint2-prompt" placeholder="You are..." rows="4"></textarea>
+
+                <button id="connect2" class="connect-btn" type="button" data-endpoint="2">
+                    <span class="spinner hidden"></span>
+                    <span class="btn-text">Connect</span>
+                </button>
+                <span id="endpoint2-model" class="model-badge hidden"></span>
             </div>
-        </div>
-        <div id="num-exchanges-container">
-            <label for="num-exchanges">Number of Exchanges: <span id="num-exchanges-value">3</span></label>
-            <input type="range" id="num-exchanges" min="3" max="30" value="3">
-        </div>
+        </section>
 
-        <div id="conversation">
-            <div id="initial-prompt-text"><strong>Initial Prompt:</strong> <span id="initial-prompt-content"></span></div>
-        </div>
+        <section class="controls" aria-label="Conversation controls">
+            <div class="exchanges-control">
+                <label for="num-exchanges">Exchanges: <output id="num-exchanges-value">3</output></label>
+                <input type="range" id="num-exchanges" min="1" max="30" value="3">
+            </div>
+        </section>
 
-        <div id="prompt-container">
-            <input type="text" id="prompt" placeholder="Enter your initial prompt here" onkeydown="if (event.key === 'Enter') { $('#send').click(); }">
-            <button id="send">Send</button>
-            <button class="stop-btn" id="stop" title="Stop Streaming">■</button>
-        </div>
-    </div>
+        <section id="conversation-panel" aria-label="Conversation">
+            <div id="initial-prompt" class="initial-prompt hidden">
+                <strong>Initial Prompt:</strong>
+                <span id="initial-prompt-text"></span>
+            </div>
+            <div id="conversation" role="log" aria-live="polite"></div>
+            <div id="typing-indicator" class="typing-indicator hidden">
+                <span></span><span></span><span></span>
+            </div>
+        </section>
 
-    <script>
-        var currentXHR = null;  // Track the active request for stopping
-        var endpoint1Connected = false;
-        var endpoint2Connected = false;
+        <section class="input-bar" aria-label="Message input">
+            <input type="text" id="prompt-input" placeholder="Enter your initial prompt here..." autocomplete="off">
+            <button id="send-btn" type="button" disabled>Send</button>
+            <button id="clear-btn" type="button" class="secondary-btn" title="Clear conversation">Clear</button>
+            <button id="stop-btn" type="button" class="danger-btn" disabled title="Stop generation">Stop</button>
+        </section>
+    </main>
 
-        function connectEndpoint(endpointNum) {
-            var endpointUrl = $('#endpoint' + endpointNum).val();
-            var systemPrompt = $('#system-prompt' + endpointNum).val();
-            if (endpointUrl) {
-                $.ajax({
-                    url: '/connect',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        endpoint_num: endpointNum, 
-                        endpoint_url: endpointUrl,
-                        system_prompt: systemPrompt
-                    }),
-                    success: function(response) {
-                        if (response.status === "success") {
-                            $('#connect-endpoint' + endpointNum).css('background-color', 'var(--button-ready-bg-color)');
-                            $('#connect-endpoint' + endpointNum).text('Endpoint ' + endpointNum + ' Connected');
-                            if (endpointNum === 1) {
-                                endpoint1Connected = true;
-                            } else {
-                                endpoint2Connected = true;
-                            }
-                            // Save to localStorage
-                            localStorage.setItem('endpoint' + endpointNum, endpointUrl);
-                            localStorage.setItem('systemPrompt' + endpointNum, systemPrompt);
-                        } else {
-                            $('#connect-endpoint' + endpointNum).css('background-color', 'var(--button-pending-bg-color)');
-                            if (endpointNum === 1) {
-                                endpoint1Connected = false;
-                            } else {
-                                endpoint2Connected = false;
-                            }
-                        }
-                        updateSendButtonState();
-                        alert(response.message);
-                    },
-                    error: function() {
-                        $('#connect-endpoint' + endpointNum).css('background-color', 'var(--button-pending-bg-color)');
-                        if (endpointNum === 1) {
-                            endpoint1Connected = false;
-                        } else {
-                            endpoint2Connected = false;
-                        }
-                        updateSendButtonState();
-                        alert("Failed to connect to Endpoint " + endpointNum);
-                    }
-                });
-            }
-        }
-
-        function updateSendButtonState() {
-            if (endpoint1Connected && endpoint2Connected) {
-                $('#send').prop('disabled', false).css('background-color', 'var(--button-ready-bg-color)');
-            } else {
-                $('#send').prop('disabled', true).css('background-color', 'var(--button-inactive-bg-color)');
-            }
-        }
-
-        $(document).ready(function() {
-            // Load saved values
-            $('#endpoint1').val(localStorage.getItem('endpoint1') || '');
-            $('#endpoint2').val(localStorage.getItem('endpoint2') || '');
-            $('#system-prompt1').val(localStorage.getItem('systemPrompt1') || '');
-            $('#system-prompt2').val(localStorage.getItem('systemPrompt2') || '');
-
-            $('#num-exchanges').on('input', function() {
-                $('#num-exchanges-value').text($(this).val());
-            });
-
-            // Initially disable Send and Stop buttons
-            $('#send').prop('disabled', true).css('background-color', 'var(--button-inactive-bg-color)');
-            $('#stop').prop('disabled', true).css('background-color', 'var(--button-inactive-bg-color)');
-
-            $('#send').click(function() {
-                var prompt = $('#prompt').val();
-                var numExchanges = $('#num-exchanges').val();
-                if (prompt) {
-                    $('#initial-prompt-content').text(prompt);
-                    $('#prompt').val('');
-
-                    var conversation = $('#conversation');
-                    
-                    currentXHR = new XMLHttpRequest();
-                    currentXHR.open('POST', '/chat', true);
-                    currentXHR.setRequestHeader('Content-Type', 'application/json');
-                    currentXHR.send(JSON.stringify({prompt: prompt, num_exchanges: numExchanges}));
-
-                    // Enable Stop button and change its color to red
-                    $('#stop').prop('disabled', false).css('background-color', 'var(--button-pending-bg-color)');
-
-                    var currentMessage = null;
-                    var currentContent = '';
-
-                    currentXHR.onprogress = function() {
-                        var newData = currentXHR.response.substr(currentXHR.seenBytes || 0);
-                        currentXHR.seenBytes = currentXHR.response.length;
-
-                        var messages = newData.split('\n');
-                        messages.forEach(function(message) {
-                            if (message.trim() !== '') {
-                                try {
-                                    var data = JSON.parse(message);
-                                    if (data.error) {
-                                        alert('Error: ' + data.error);
-                                        return;
-                                    }
-                                    if (data.sender) {
-                                        if (currentMessage) {
-                                            currentMessage.find('p').html('<strong>' + currentMessage.data('sender') + ':</strong> ' + currentContent);
-                                        }
-                                        currentMessage = $('<div class="message">');
-                                        currentMessage.data('sender', data.sender);
-                                        currentContent = '';
-                                        var messageHtml = '<p><strong>' + data.sender + ':</strong> ';
-                                        if (data.message) {
-                                            messageHtml += data.message;
-                                        }
-                                        messageHtml += '</p>';
-                                        currentMessage.html(messageHtml);
-                                        conversation.append(currentMessage);
-                                    } else if (data.content) {
-                                        currentContent += data.content;
-                                        if (currentMessage) {
-                                            currentMessage.find('p').html('<strong>' + currentMessage.data('sender') + ':</strong> ' + currentContent);
-                                        }
-                                    } else if (data.end) {
-                                        if (currentMessage) {
-                                            var statsHtml = '<div class="message-info">'
-                                                + data.timestamp + ' - '
-                                                + data.model + ' - '
-                                                + data.total_tokens + ' tokens - '
-                                                + data.tps.toFixed(2) + ' tokens/sec</div>';
-                                            currentMessage.append(statsHtml);
-                                        }
-                                        currentMessage = null;
-                                        currentContent = '';
-                                    }
-                                } catch (e) {
-                                    console.error('Error parsing message:', e);
-                                }
-                            }
-                        });
-                        conversation.scrollTop(conversation[0].scrollHeight);
-                    };
-
-                    currentXHR.onload = function() {
-                        if (currentMessage) {
-                            currentMessage.find('p').html('<strong>' + currentMessage.data('sender') + ':</strong> ' + currentContent);
-                        }
-                        // Disable Stop button and change its color back to grey
-                        $('#stop').prop('disabled', true).css('background-color', 'var(--button-inactive-bg-color)');
-                    };
-                }
-            });
-
-            $('#stop').click(function() {
-                if (currentXHR) {
-                    currentXHR.abort();
-                    // Disable Stop button and change its color back to grey
-                    $('#stop').prop('disabled', true).css('background-color', 'var(--button-inactive-bg-color)');
-                    alert('Streaming stopped.');
-                }
-            });
-
-            // Theme toggle functionality
-            $('#theme-switch').change(function() {
-                if (this.checked) {
-                    $('body').addClass('light-mode');
-                    localStorage.setItem('theme', 'light');
-                } else {
-                    $('body').removeClass('light-mode');
-                    localStorage.setItem('theme', 'dark');
-                }
-            });
-
-            // Load saved theme preference
-            var savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'light') {
-                $('#theme-switch').prop('checked', true).trigger('change');
-            }
-        });
-    </script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
