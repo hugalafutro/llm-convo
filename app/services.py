@@ -13,18 +13,21 @@ log = logging.getLogger(__name__)
 _http_timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
 
 
-async def resolve_model_name(cfg: EndpointConfig) -> str:
+async def list_models(cfg: EndpointConfig) -> list[str]:
     headers = _auth_headers(cfg)
     try:
         async with httpx.AsyncClient(timeout=_http_timeout) as client:
             resp = await client.get(f"{cfg.url}/v1/models", headers=headers)
             resp.raise_for_status()
-            models = resp.json().get("data", [])
-            if models:
-                return models[0].get("id", "Unknown Model")
+            return [m.get("id", "") for m in resp.json().get("data", []) if m.get("id")]
     except Exception:
-        log.warning("Could not resolve model name for %s", cfg.url, exc_info=True)
-    return "Unknown Model"
+        log.warning("Could not list models for %s", cfg.url, exc_info=True)
+    return []
+
+
+async def resolve_model_name(cfg: EndpointConfig) -> str:
+    models = await list_models(cfg)
+    return models[0] if models else "Unknown Model"
 
 
 async def check_endpoint(cfg: EndpointConfig) -> bool:
