@@ -196,15 +196,31 @@ button {
     cursor: not-allowed;
 }
 
-.model-badge {
+.model-select {
     display: inline-block;
     margin-left: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: var(--text-primary);
     background: var(--bg-input);
-    padding: 0.2rem 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius);
     vertical-align: middle;
+    cursor: pointer;
+    max-width: 100%;
+    transition: border-color var(--transition), opacity var(--transition);
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: var(--accent-1);
+}
+
+.model-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ===== Controls ===== */
