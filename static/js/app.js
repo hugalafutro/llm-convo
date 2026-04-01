@@ -69,6 +69,20 @@
     return localStorage.getItem(`llm_convo_${id}`) || fallback;
   }
 
+  async function getErrorMessage(resp) {
+    try {
+      const data = await resp.json();
+      return data.error || data.message || `HTTP ${resp.status}`;
+    } catch {
+      try {
+        const text = await resp.text();
+        return text || `HTTP ${resp.status}`;
+      } catch {
+        return `HTTP ${resp.status}`;
+      }
+    }
+  }
+
   function setEndpointConnectionState(num, connected) {
     const btn = $(`#connect${num}`);
     const btnText = btn.querySelector(".btn-text");
@@ -318,12 +332,7 @@
         starterText = data.starter;
         errorMsg = data.error;
       } else {
-        try {
-          const data = await resp.json();
-          errorMsg = data.error || `HTTP ${resp.status}`;
-        } catch {
-          errorMsg = `HTTP ${resp.status}`;
-        }
+        errorMsg = await getErrorMessage(resp);
       }
 
       if (starterText) {

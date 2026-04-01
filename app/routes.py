@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from fastapi import APIRouter, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
@@ -205,22 +206,22 @@ async def generate_starter(request: Request, response: Response):
     """Generate a conversation starter based on the endpoint's character and prompt."""
     state = get_session(request)
     if state is None:
-        return Response("Session not found", status_code=400)
+        return JSONResponse({"error": "Session not found"}, status_code=400)
 
     try:
         body = await request.json()
         endpoint_num = body.get("endpoint_num")
         previous_starter = str(body.get("previous_starter") or "").strip()
     except Exception:
-        return Response("Invalid request body", status_code=400)
+        return JSONResponse({"error": "Invalid request body"}, status_code=400)
 
     if endpoint_num not in (1, 2):
-        return Response("Invalid endpoint number", status_code=400)
+        return JSONResponse({"error": "Invalid endpoint number"}, status_code=400)
 
     cfg = state.endpoint1 if endpoint_num == 1 else state.endpoint2
 
     if not cfg.url:
-        return Response("Endpoint not connected", status_code=400)
+        return JSONResponse({"error": "Endpoint not connected"}, status_code=400)
 
     character_name = cfg.character_name or f"Character {endpoint_num}"
 
@@ -238,7 +239,7 @@ The user already has this conversation starter:
 
 Generate a distinctly different alternative, not a rewording of the same idea."""
 
-    async def request_starter(user_content: str) -> str | Response:
+    async def request_starter(user_content: str) -> str | JSONResponse:
         messages = [
             {"role": "system", "content": starter_system},
             {"role": "user", "content": user_content},
@@ -249,7 +250,7 @@ Generate a distinctly different alternative, not a rewording of the same idea.""
             if "content" in chunk:
                 full_response += chunk["content"]
             elif "error" in chunk:
-                return Response(chunk["error"], status_code=500)
+                return JSONResponse({"error": chunk["error"]}, status_code=500)
         return full_response.strip()
 
     starter = await request_starter(
@@ -259,7 +260,7 @@ Generate a distinctly different alternative, not a rewording of the same idea.""
             else f"Generate a conversation starter for character: {character_name}"
         )
     )
-    if isinstance(starter, Response):
+    if isinstance(starter, JSONResponse):
         return starter
 
     if previous_starter and starter == previous_starter:
@@ -268,7 +269,7 @@ Generate a distinctly different alternative, not a rewording of the same idea.""
             "Do not reuse the same opening idea, wording, or setup as the previous starter."
         )
         retry_starter = await request_starter(retry_prompt)
-        if isinstance(retry_starter, Response):
+        if isinstance(retry_starter, JSONResponse):
             return retry_starter
         starter = retry_starter
 
