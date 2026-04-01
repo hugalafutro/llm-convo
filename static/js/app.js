@@ -263,7 +263,7 @@
   }
 
   function setGenerationUI(disabled) {
-    starterGenerationInProgress = !disabled;
+    starterGenerationInProgress = disabled;
     dom.sendBtn.disabled =
       disabled || !(endpoint1Connected && endpoint2Connected);
     dom.startConvo1.disabled = disabled || !endpoint1Connected;
@@ -284,15 +284,18 @@
     const name =
       $(`#endpoint${endpointNum}-name`).value.trim() ||
       `Character ${endpointNum}`;
+    const previousStarter = dom.promptInput.value.trim();
 
     setGenerationUI(true);
-    dom.promptInput.value = "";
 
     try {
       const resp = await fetch("/generate-starter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint_num: endpointNum }),
+        body: JSON.stringify({
+          endpoint_num: endpointNum,
+          previous_starter: previousStarter,
+        }),
       });
 
       let errorMsg = null;
@@ -313,7 +316,11 @@
 
       if (starterText) {
         dom.promptInput.value = starterText;
-        toast(`Conversation starter generated for ${name}`, "success");
+        const toastPrefix = previousStarter ? "New conversation" : "Conversation";
+        toast(
+          `${toastPrefix} starter generated for ${name}`,
+          "success",
+        );
       } else {
         toast(errorMsg || "Failed to generate starter", "error");
       }

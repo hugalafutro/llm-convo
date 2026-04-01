@@ -188,6 +188,7 @@ async def generate_starter(request: Request, response: Response):
     try:
         body = await request.json()
         endpoint_num = body.get("endpoint_num")
+        previous_starter = str(body.get("previous_starter") or "").strip()
     except Exception:
         return Response("Invalid request body", status_code=400)
 
@@ -207,22 +208,49 @@ You are tasked with generating a short 1-2 sentence conversation starter for the
 Generate an engaging, in-character opening line that would naturally start a conversation.
 Respond with ONLY the conversation starter text, nothing else."""
 
-    messages = [
-        {"role": "system", "content": starter_system},
-        {
-            "role": "user",
-            "content": f"Generate a conversation starter for character: {character_name}",
-        },
-    ]
+    if previous_starter:
+        starter_system += f"""
 
-    full_response = ""
-    async for chunk in stream_llm(cfg, messages):
-        if "content" in chunk:
-            full_response += chunk["content"]
-        elif "error" in chunk:
-            return Response(chunk["error"], status_code=500)
+The user already has this conversation starter:
+{previous_starter}
 
-    return {"starter": full_response.strip()}
+Generate a distinctly different alternative, not a rewording of the same idea."""
+
+    async def request_starter(user_content: str) -> str | Response:
+        messages = [
+            {"role": "system", "content": starter_system},
+            {"role": "user", "content": user_content},
+        ]
+
+        full_response = ""
+        async for chunk in stream_llm(cfg, messages):
+            if "content" in chunk:
+                full_response += chunk["content"]
+            elif "error" in chunk:
+                return Response(chunk["error"], status_code=500)
+        return full_response.strip()
+
+    starter = await request_starter(
+        (
+            f"Generate a new conversation starter for character: {character_name}"
+            if previous_starter
+            else f"Generate a conversation starter for character: {character_name}"
+        )
+    )
+    if isinstance(starter, Response):
+        return starter
+
+    if previous_starter and starter == previous_starter:
+        retry_prompt = (
+            f'Generate a clearly different conversation starter for character: {character_name}. '
+            "Do not reuse the same opening idea, wording, or setup as the previous starter."
+        )
+        retry_starter = await request_starter(retry_prompt)
+        if isinstance(retry_starter, Response):
+            return retry_starter
+        starter = retry_starter
+
+    return {"starter": starter}
 
 
 @router.get("/health")
