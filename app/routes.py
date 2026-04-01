@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
 from . import BASE_DIR
-from .models import ChatRequest, ConnectRequest, SetModelRequest, Turn
+from .models import ConnectRequest, SetModelRequest, Turn
 from .services import build_messages, check_endpoint, list_models, stream_llm
 from .session import get_or_create_session, get_session, session_count
 
@@ -39,11 +39,19 @@ async def connect(body: ConnectRequest, request: Request, response: Response):
 
     reachable = await check_endpoint(cfg)
     if not reachable:
-        return {"status": "error", "message": f"Failed to connect to Endpoint {body.endpoint_num}"}
+        return {
+            "status": "error",
+            "message": f"Failed to connect to Endpoint {body.endpoint_num}",
+        }
 
     models = await list_models(cfg)
     cfg.model_id = models[0] if models else "Unknown Model"
-    log.info("Endpoint %d connected: %s (model: %s)", body.endpoint_num, cfg.url, cfg.model_id)
+    log.info(
+        "Endpoint %d connected: %s (model: %s)",
+        body.endpoint_num,
+        cfg.url,
+        cfg.model_id,
+    )
     return {
         "status": "success",
         "message": f"Connected to Endpoint {body.endpoint_num}",
@@ -73,29 +81,25 @@ async def chat(request: Request):
     state.initial_prompt = prompt
 
     async def event_stream() -> AsyncIterator[dict]:
-        current_prompt = prompt
-
-        for i in range(num_exchanges):
+        for _ in range(num_exchanges):
             if await request.is_disconnected():
                 break
 
-            for target, cfg, label_key in [
-                ("model2", state.endpoint2, "model2"),
-                ("model1", state.endpoint1, "model1"),
+            for target, cfg in [
+                ("model2", state.endpoint2),
+                ("model1", state.endpoint1),
             ]:
                 sender = cfg.character_name or f"Model {target[-1]}"
                 ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
                 yield {
                     "event": "sender",
-                    "data": json.dumps({"sender": sender, "timestamp": ts, "model": cfg.model_id}),
+                    "data": json.dumps(
+                        {"sender": sender, "timestamp": ts, "model": cfg.model_id}
+                    ),
                 }
 
                 messages = build_messages(state, target)
-                if not state.turns and target == "model2":
-                    pass  # initial prompt is already the last user message
-                elif state.turns:
-                    pass  # build_messages already includes all turns
 
                 full_response = ""
                 error_occurred = False
@@ -124,13 +128,17 @@ async def chat(request: Request):
                     elif "done" in chunk:
                         yield {
                             "event": "end",
-                            "data": json.dumps({
-                                "end": True,
-                                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                                "model": cfg.model_id,
-                                "total_tokens": chunk["total_tokens"],
-                                "tps": chunk["tps"],
-                            }),
+                            "data": json.dumps(
+                                {
+                                    "end": True,
+                                    "timestamp": datetime.now(timezone.utc).strftime(
+                                        "%Y-%m-%d %H:%M:%S"
+                                    ),
+                                    "model": cfg.model_id,
+                                    "total_tokens": chunk["total_tokens"],
+                                    "tps": chunk["tps"],
+                                }
+                            ),
                         }
 
                 if full_response and not error_occurred:
