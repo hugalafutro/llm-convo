@@ -36,6 +36,7 @@ class EndpointConfig(BaseModel):
     api_key: str = ""
     model_id: str = "Unknown Model"
     character_name: str = ""
+    last_model_per_api: dict[str, str] = {}
 
 
 class SessionState(BaseModel):

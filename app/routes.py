@@ -45,7 +45,13 @@ async def connect(body: ConnectRequest, request: Request, response: Response):
         }
 
     models = await list_models(cfg)
-    cfg.model_id = models[0] if models else "Unknown Model"
+
+    # Check for previously saved model preference for this API URL
+    saved_model = cfg.last_model_per_api.get(body.endpoint_url.rstrip("/"))
+    if saved_model and saved_model in models:
+        cfg.model_id = saved_model
+    else:
+        cfg.model_id = models[0] if models else "Unknown Model"
     log.info(
         "Endpoint %d connected: %s (model: %s)",
         body.endpoint_num,
@@ -57,6 +63,7 @@ async def connect(body: ConnectRequest, request: Request, response: Response):
         "message": f"Connected to Endpoint {body.endpoint_num}",
         "model": cfg.model_id,
         "models": models,
+        "saved_model": cfg.last_model_per_api.get(body.endpoint_url.rstrip("/"), ""),
     }
 
 
@@ -156,6 +163,9 @@ async def set_model(body: SetModelRequest, request: Request):
         return Response("Session not found", status_code=400)
     cfg = state.endpoint1 if body.endpoint_num == 1 else state.endpoint2
     cfg.model_id = body.model_id
+    # Remember the model preference for this API URL
+    if cfg.url:
+        cfg.last_model_per_api[cfg.url.rstrip("/")] = body.model_id
     return {"status": "ok", "model": cfg.model_id}
 
 
