@@ -67,28 +67,45 @@
     return localStorage.getItem(`llm_convo_${id}`) || fallback;
   }
 
-  function restoreConnectionState() {
-    // Restore UI state for endpoints that have saved URLs
-    [1, 2].forEach((num) => {
-      const url = loadField(`endpoint${num}-url`);
-      if (url) {
-        const btn = $(`#connect${num}`);
-        const btnText = btn.querySelector(".btn-text");
-        if (num === 1) {
-          endpoint1Connected = true;
-        } else {
-          endpoint2Connected = true;
-        }
+  function setEndpointConnectionState(num, connected) {
+    const btn = $(`#connect${num}`);
+    const btnText = btn.querySelector(".btn-text");
+    const select = $(`#endpoint${num}-model`);
 
-        // Only mark as connected (green) if a model was previously selected
-        const savedModel = localStorage.getItem(
-          `llm_convo_model_${num}_${url}`,
-        );
-        if (savedModel) {
-          btn.classList.add("connected");
-          btnText.textContent = "Connected";
-        }
-      }
+    if (num === 1) {
+      endpoint1Connected = connected;
+      dom.startConvo1.disabled = !connected;
+    } else {
+      endpoint2Connected = connected;
+      dom.startConvo2.disabled = !connected;
+    }
+
+    btn.classList.toggle("connected", connected);
+    btnText.textContent = connected ? "Connected" : "Connect";
+
+    select.disabled = !connected;
+    if (!connected) {
+      select.classList.add("hidden");
+    }
+
+    updateSendState();
+  }
+
+  function restoreConnectionState() {
+    // Persist field values, but never assume a saved URL means a live connection.
+    [1, 2].forEach((num) => {
+      localStorage.removeItem(`llm_convo_connected_${num}`);
+      setEndpointConnectionState(num, false);
+    });
+  }
+
+  function initConnectionStateReset() {
+    [1, 2].forEach((num) => {
+      [`#endpoint${num}-url`, `#endpoint${num}-key`].forEach((selector) => {
+        const el = $(selector);
+        if (!el) return;
+        el.addEventListener("input", () => setEndpointConnectionState(num, false));
+      });
     });
   }
 
@@ -148,15 +165,6 @@
       const data = await resp.json();
 
       if (data.status === "success") {
-        if (num === 1) {
-          endpoint1Connected = true;
-        } else {
-          endpoint2Connected = true;
-        }
-        // Update both buttons independently based on their endpoint connection status
-        dom.startConvo1.disabled = !endpoint1Connected;
-        dom.startConvo2.disabled = !endpoint2Connected;
-
         // Save connection state
         localStorage.setItem(`llm_convo_connected_${num}`, "true");
 
@@ -180,49 +188,24 @@
           });
         }
 
-        // Only turn button green if a model is loaded/selected
-        const activeModel = select.value;
-        if (activeModel) {
-          btn.classList.add("connected");
-          btnText.textContent = "Connected";
-        } else {
-          btn.classList.remove("connected");
-          btnText.textContent = "Connect";
-        }
+        setEndpointConnectionState(num, true);
 
         toast(
           `Endpoint ${num} connected (${savedModel || data.model || "unknown"})`,
           "success",
         );
       } else {
-        btn.classList.remove("connected");
-        btnText.textContent = "Connect";
         localStorage.removeItem(`llm_convo_connected_${num}`);
-        if (num === 1) {
-          endpoint1Connected = false;
-          dom.startConvo1.disabled = true;
-        } else {
-          endpoint2Connected = false;
-          dom.startConvo2.disabled = true;
-        }
+        setEndpointConnectionState(num, false);
         toast(data.message || "Connection failed", "error");
       }
     } catch (err) {
-      btn.classList.remove("connected");
-      btnText.textContent = "Connect";
       localStorage.removeItem(`llm_convo_connected_${num}`);
-      if (num === 1) {
-        endpoint1Connected = false;
-        dom.startConvo1.disabled = true;
-      } else {
-        endpoint2Connected = false;
-        dom.startConvo2.disabled = true;
-      }
+      setEndpointConnectionState(num, false);
       toast(`Failed to connect: ${err.message}`, "error");
     } finally {
       btn.disabled = false;
       spinner.classList.add("hidden");
-      updateSendState();
       setStarterButtonsDisabled(false);
     }
   }
@@ -253,17 +236,6 @@
     const modelId = select.value;
     const urlInput = $(`#endpoint${num}-url`);
     const apiUrl = urlInput ? urlInput.value.trim() : "";
-
-    // Update Connect button color based on model selection
-    const btn = $(`#connect${num}`);
-    const btnText = btn.querySelector(".btn-text");
-    if (modelId) {
-      btn.classList.add("connected");
-      btnText.textContent = "Connected";
-    } else {
-      btn.classList.remove("connected");
-      btnText.textContent = "Connect";
-    }
 
     try {
       await fetch("/set-model", {
@@ -566,7 +538,7 @@
     initTheme();
     initPersistence();
     restoreConnectionState();
-    updateSendState();
+    initConnectionStateReset();
     setStarterButtonsDisabled(false);
 
     dom.numExchanges.addEventListener("input", () => {
