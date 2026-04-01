@@ -67,6 +67,24 @@
     return localStorage.getItem(`llm_convo_${id}`) || fallback;
   }
 
+  function restoreConnectionState() {
+    // Restore UI state for endpoints that have saved URLs
+    [1, 2].forEach((num) => {
+      const url = loadField(`endpoint${num}-url`);
+      if (url) {
+        const btn = $(`#connect${num}`);
+        const btnText = btn.querySelector(".btn-text");
+        btn.classList.add("connected");
+        btnText.textContent = "Connected";
+        if (num === 1) {
+          endpoint1Connected = true;
+        } else {
+          endpoint2Connected = true;
+        }
+      }
+    });
+  }
+
   function initPersistence() {
     const fields = [
       "endpoint1-url",
@@ -134,6 +152,9 @@
         dom.startConvo1.disabled = !endpoint1Connected;
         dom.startConvo2.disabled = !endpoint2Connected;
 
+        // Save connection state
+        localStorage.setItem(`llm_convo_connected_${num}`, "true");
+
         // Check for saved model preference for this API URL and endpoint
         const savedModel =
           localStorage.getItem(`llm_convo_model_${num}_${url}`) ||
@@ -161,6 +182,7 @@
       } else {
         btn.classList.remove("connected");
         btnText.textContent = "Connect";
+        localStorage.removeItem(`llm_convo_connected_${num}`);
         if (num === 1) {
           endpoint1Connected = false;
           dom.startConvo1.disabled = true;
@@ -173,6 +195,7 @@
     } catch (err) {
       btn.classList.remove("connected");
       btnText.textContent = "Connect";
+      localStorage.removeItem(`llm_convo_connected_${num}`);
       if (num === 1) {
         endpoint1Connected = false;
         dom.startConvo1.disabled = true;
@@ -185,6 +208,7 @@
       btn.disabled = false;
       spinner.classList.add("hidden");
       updateSendState();
+      setStarterButtonsDisabled(false);
     }
   }
 
@@ -514,7 +538,9 @@
   function init() {
     initTheme();
     initPersistence();
+    restoreConnectionState();
     updateSendState();
+    setStarterButtonsDisabled(false);
 
     dom.numExchanges.addEventListener("input", () => {
       dom.numExchangesValue.textContent = dom.numExchanges.value;
