@@ -74,12 +74,19 @@
       if (url) {
         const btn = $(`#connect${num}`);
         const btnText = btn.querySelector(".btn-text");
-        btn.classList.add("connected");
-        btnText.textContent = "Connected";
         if (num === 1) {
           endpoint1Connected = true;
         } else {
           endpoint2Connected = true;
+        }
+
+        // Only mark as connected (green) if a model was previously selected
+        const savedModel = localStorage.getItem(
+          `llm_convo_model_${num}_${url}`,
+        );
+        if (savedModel) {
+          btn.classList.add("connected");
+          btnText.textContent = "Connected";
         }
       }
     });
@@ -141,8 +148,6 @@
       const data = await resp.json();
 
       if (data.status === "success") {
-        btn.classList.add("connected");
-        btnText.textContent = "Connected";
         if (num === 1) {
           endpoint1Connected = true;
         } else {
@@ -173,6 +178,16 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ endpoint_num: num, model_id: savedModel }),
           });
+        }
+
+        // Only turn button green if a model is loaded/selected
+        const activeModel = select.value;
+        if (activeModel) {
+          btn.classList.add("connected");
+          btnText.textContent = "Connected";
+        } else {
+          btn.classList.remove("connected");
+          btnText.textContent = "Connect";
         }
 
         toast(
@@ -238,6 +253,18 @@
     const modelId = select.value;
     const urlInput = $(`#endpoint${num}-url`);
     const apiUrl = urlInput ? urlInput.value.trim() : "";
+
+    // Update Connect button color based on model selection
+    const btn = $(`#connect${num}`);
+    const btnText = btn.querySelector(".btn-text");
+    if (modelId) {
+      btn.classList.add("connected");
+      btnText.textContent = "Connected";
+    } else {
+      btn.classList.remove("connected");
+      btnText.textContent = "Connect";
+    }
+
     try {
       await fetch("/set-model", {
         method: "POST",
