@@ -6,12 +6,11 @@ from typing import AsyncIterator
 
 import httpx
 
-from .models import EndpointConfig, SessionState, Turn
+from .models import EndpointConfig, SessionState
 
 log = logging.getLogger(__name__)
 
 _http_timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
-
 
 
 def _normalize_delta_value(val) -> str:
@@ -91,7 +90,7 @@ def build_messages(
 
     Each model sees:
     - A ``system`` message: its configured prompt plus dialogue framing.
-    - The initial prompt as ``[User]: ...``.
+    - The initial prompt as ``[User]: ...`` only if conversation hasn't started.
     - Its own prior turns as ``assistant``.
     - The partner's turns as ``user`` with ``[CharacterName]: ...`` prefixes.
     """
@@ -101,10 +100,16 @@ def build_messages(
         system_prompt = state.endpoint2.system_prompt
 
     stripped = system_prompt.strip()
-    system_content = (f"{stripped}\n\n" + _DIALOGUE_FRAMING) if stripped else _DIALOGUE_FRAMING
+    system_content = (
+        (f"{stripped}\n\n" + _DIALOGUE_FRAMING) if stripped else _DIALOGUE_FRAMING
+    )
 
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
-    messages.append({"role": "user", "content": f"[User]: {state.initial_prompt}"})
+
+    # Only prepend the initial prompt if we haven't started the conversation yet.
+    # After the first turn, the conversation history in state.turns contains all context.
+    if state.initial_prompt and not state.turns:
+        messages.append({"role": "user", "content": f"[User]: {state.initial_prompt}"})
 
     for turn in state.turns:
         if turn.speaker == target:
@@ -202,4 +207,4 @@ async def stream_llm(
 def _auth_headers(cfg: EndpointConfig) -> dict[str, str]:
     if cfg.api_key:
         return {"Authorization": f"Bearer {cfg.api_key}"}
-    return {}
+    return []
