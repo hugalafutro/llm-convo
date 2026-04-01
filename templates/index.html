@@ -7,10 +7,10 @@
         <link rel="stylesheet" href="/static/css/style.css" />
     </head>
     <body>
-        <div id="toast-container" aria-live="polite"></div>
+        <div</body> id="toast-container" aria-live="polite"></div>
 
         <header>
-            <h1>LLM Convo</h1>
+            <h</header>1>LLM Convo</h1>
             <button
                 id="theme-toggle"
                 type="button"
@@ -67,15 +67,26 @@
                     >
                         <option value="">No models loaded</option>
                     </select>
-                    <button
-                        id="connect1"
-                        class="connect-btn"
-                        type="button"
-                        data-endpoint="1"
-                    >
-                        <span class="spinner hidden"></span>
-                        <span class="btn-text">Connect</span>
-                    </button>
+                    <div class="endpoint-button-row">
+                        <button
+                            id="connect1"
+                            class="connect-btn"
+                            type="button"
+                            data-endpoint="1"
+                        >
+                            <span class="spinner hidden"></span>
+                            <span class="btn-text">Connect</span>
+                        </button>
+                        <button
+                            id="start-convo1"
+                            class="start-convo-btn"
+                            type="button"
+                            data-endpoint="1"
+                            disabled
+                        >
+                            Convo Starter
+                        </button>
+                    </div>
                 </div>
 
                 <div class="endpoint-card" data-endpoint="2">
@@ -122,15 +133,26 @@
                     >
                         <option value="">No models loaded</option>
                     </select>
-                    <button
-                        id="connect2"
-                        class="connect-btn"
-                        type="button"
-                        data-endpoint="2"
-                    >
-                        <span class="spinner hidden"></span>
-                        <span class="btn-text">Connect</span>
-                    </button>
+                    <div class="endpoint-button-row">
+                        <button
+                            id="connect2"
+                            class="connect-btn"
+                            type="button"
+                            data-endpoint="2"
+                        >
+                            <span class="spinner hidden"></span>
+                            <span class="btn-text">Connect</span>
+                        </button>
+                        <button
+                            id="start-convo2"
+                            class="start-convo-btn"
+                            type="button"
+                            data-endpoint="2"
+                            disabled
+                        >
+                            Convo Starter
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -154,6 +176,10 @@
                 <div id="initial-prompt" class="initial-prompt hidden">
                     <strong>Initial Prompt:</strong>
                     <span id="initial-prompt-text"></span>
+                </div>
+                <div id="starter-indicator" class="starter-indicator hidden">
+                    <span class="spinner"></span>
+                    <span>Generating conversation starter...</span>
                 </div>
                 <div id="conversation" role="log" aria-live="polite"></div>
                 <div id="typing-indicator" class="typing-indicator hidden">

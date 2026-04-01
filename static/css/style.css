@@ -216,6 +216,51 @@ button {
     gap: 0.5rem;
 }
 
+.endpoint-button-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    justify-content: space-between;
+}
+
+.start-convo-btn {
+    margin-top: 0.75rem;
+    background: var(--accent-warn);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.start-convo-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.start-convo-btn:not(:disabled):hover {
+    filter: brightness(1.1);
+}
+
+/* ===== Generating Animation ===== */
+#prompt-input.generating {
+    position: relative;
+    background: var(--bg-input);
+}
+
+#prompt-input.generating::after {
+    content: "";
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-muted);
+    border-top-color: var(--accent-1);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
 .connect-btn.connected {
     background: var(--accent-success);
 }
@@ -305,6 +350,28 @@ button {
     font-size: 0.875rem;
     color: var(--text-secondary);
     border-left: 3px solid var(--accent-warn);
+}
+
+.starter-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--accent-1);
+}
+
+.starter-indicator .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--accent-1);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
 }
 
 .initial-prompt strong {

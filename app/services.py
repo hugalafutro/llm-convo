@@ -192,7 +192,12 @@ async def stream_llm(
 
     except httpx.HTTPStatusError as exc:
         log.error("HTTP error from %s: %s", cfg.url, exc)
-        yield {"error": f"HTTP {exc.response.status_code}: {exc.response.text[:200]}"}
+        try:
+            exc.response.read()
+            error_detail = exc.response.text[:200]
+        except Exception:
+            error_detail = f"HTTP {exc.response.status_code}"
+        yield {"error": f"HTTP {exc.response.status_code}: {error_detail}"}
         return
     except Exception as exc:
         log.error("Stream error from %s: %s", cfg.url, exc, exc_info=True)

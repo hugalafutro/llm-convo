@@ -10,6 +10,7 @@
   let currentReasoning = "";
   let currentSpeaker = "";
   let turnIndex = 0;
+  let starterGenerationInProgress = false;
 
   // ===== DOM refs =====
   const $ = (sel) => document.querySelector(sel);
@@ -28,6 +29,9 @@
     initialPromptText: $("#initial-prompt-text"),
     typingIndicator: $("#typing-indicator"),
     toastContainer: $("#toast-container"),
+    startConvo1: $("#start-convo1"),
+    startConvo2: $("#start-convo2"),
+    starterIndicator: $("#starter-indicator"),
   };
 
   // ===== Toast Notifications =====
@@ -101,6 +105,8 @@
     btn.disabled = true;
     spinner.classList.remove("hidden");
     btnText.textContent = "Connecting...";
+    dom.startConvo1.disabled = true;
+    dom.startConvo2.disabled = true;
 
     try {
       const resp = await fetch("/connect", {
@@ -119,34 +125,61 @@
       if (data.status === "success") {
         btn.classList.add("connected");
         btnText.textContent = "Connected";
-        if (num === 1) endpoint1Connected = true;
-        else endpoint2Connected = true;
+        if (num === 1) {
+          endpoint1Connected = true;
+        } else {
+          endpoint2Connected = true;
+        }
+        // Update both buttons independently based on their endpoint connection status
+        dom.startConvo1.disabled = !endpoint1Connected;
+        dom.startConvo2.disabled = !endpoint2Connected;
 
         // Check for saved model preference for this API URL and endpoint
         const savedModel =
           localStorage.getItem(`llm_convo_model_${num}_${url}`) ||
           data.saved_model ||
+          data.model ||
           "";
         const select = $(`#endpoint${num}-model`);
         populateModelSelect(select, data.models || [], savedModel);
         select.classList.remove("hidden");
         select.disabled = false;
+
+        // Sync the saved model preference to the server so it's used
+        if (savedModel && data.models && data.models.includes(savedModel)) {
+          await fetch("/set-model", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint_num: num, model_id: savedModel }),
+          });
+        }
+
         toast(
-          `Endpoint ${num} connected (${data.model || "unknown"})`,
+          `Endpoint ${num} connected (${savedModel || data.model || "unknown"})`,
           "success",
         );
       } else {
         btn.classList.remove("connected");
         btnText.textContent = "Connect";
-        if (num === 1) endpoint1Connected = false;
-        else endpoint2Connected = false;
+        if (num === 1) {
+          endpoint1Connected = false;
+          dom.startConvo1.disabled = true;
+        } else {
+          endpoint2Connected = false;
+          dom.startConvo2.disabled = true;
+        }
         toast(data.message || "Connection failed", "error");
       }
     } catch (err) {
       btn.classList.remove("connected");
       btnText.textContent = "Connect";
-      if (num === 1) endpoint1Connected = false;
-      else endpoint2Connected = false;
+      if (num === 1) {
+        endpoint1Connected = false;
+        dom.startConvo1.disabled = true;
+      } else {
+        endpoint2Connected = false;
+        dom.startConvo2.disabled = true;
+      }
       toast(`Failed to connect: ${err.message}`, "error");
     } finally {
       btn.disabled = false;
@@ -198,6 +231,74 @@
   function setModelSelectsDisabled(disabled) {
     $(`#endpoint1-model`).disabled = disabled || !endpoint1Connected;
     $(`#endpoint2-model`).disabled = disabled || !endpoint2Connected;
+  }
+
+  // ===== Generate Conversation Starter =====
+  function setStarterButtonsDisabled(disabled) {
+    dom.startConvo1.disabled = disabled || !endpoint1Connected;
+    dom.startConvo2.disabled = disabled || !endpoint2Connected;
+  }
+
+  function setGenerationUI(disabled) {
+    starterGenerationInProgress = !disabled;
+    dom.sendBtn.disabled =
+      disabled || !(endpoint1Connected && endpoint2Connected);
+    dom.startConvo1.disabled = disabled || !endpoint1Connected;
+    dom.startConvo2.disabled = disabled || !endpoint2Connected;
+    dom.promptInput.disabled = disabled;
+    if (disabled) {
+      dom.promptInput.classList.add("generating");
+      dom.starterIndicator.classList.remove("hidden");
+    } else {
+      dom.promptInput.classList.remove("generating");
+      dom.starterIndicator.classList.add("hidden");
+    }
+  }
+
+  async function generateStarter(endpointNum) {
+    if (starterGenerationInProgress) return;
+
+    const name =
+      $(`#endpoint${endpointNum}-name`).value.trim() ||
+      `Character ${endpointNum}`;
+
+    setGenerationUI(true);
+    dom.promptInput.value = "";
+
+    try {
+      const resp = await fetch("/generate-starter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint_num: endpointNum }),
+      });
+
+      let errorMsg = null;
+      let starterText = null;
+
+      if (resp.ok) {
+        const data = await resp.json();
+        starterText = data.starter;
+        errorMsg = data.error;
+      } else {
+        try {
+          const data = await resp.json();
+          errorMsg = data.error || `HTTP ${resp.status}`;
+        } catch {
+          errorMsg = `HTTP ${resp.status}`;
+        }
+      }
+
+      if (starterText) {
+        dom.promptInput.value = starterText;
+        toast(`Conversation starter generated for ${name}`, "success");
+      } else {
+        toast(errorMsg || "Failed to generate starter", "error");
+      }
+    } catch (err) {
+      toast(`Error: ${err.message}`, "error");
+    } finally {
+      setGenerationUI(false);
+    }
   }
 
   // ===== Simple Markdown Rendering (XSS-safe) =====
@@ -389,6 +490,7 @@
   async function clearConversation() {
     dom.conversation.innerHTML = "";
     dom.initialPrompt.classList.add("hidden");
+    dom.starterIndicator.classList.add("hidden");
     dom.initialPromptText.textContent = "";
     currentMessageEl = null;
     currentContent = "";
@@ -432,6 +534,8 @@
     dom.sendBtn.addEventListener("click", startChat);
     dom.stopBtn.addEventListener("click", () => stopChat(true));
     dom.clearBtn.addEventListener("click", clearConversation);
+    dom.startConvo1.addEventListener("click", () => generateStarter(1));
+    dom.startConvo2.addEventListener("click", () => generateStarter(2));
 
     dom.promptInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !dom.sendBtn.disabled) {

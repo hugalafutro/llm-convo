@@ -178,6 +178,53 @@ async def clear(request: Request):
     return {"status": "ok"}
 
 
+@router.post("/generate-starter")
+async def generate_starter(request: Request, response: Response):
+    """Generate a conversation starter based on the endpoint's character and prompt."""
+    state = get_session(request)
+    if state is None:
+        return Response("Session not found", status_code=400)
+
+    try:
+        body = await request.json()
+        endpoint_num = body.get("endpoint_num")
+    except Exception:
+        return Response("Invalid request body", status_code=400)
+
+    if endpoint_num not in (1, 2):
+        return Response("Invalid endpoint number", status_code=400)
+
+    cfg = state.endpoint1 if endpoint_num == 1 else state.endpoint2
+
+    if not cfg.url:
+        return Response("Endpoint not connected", status_code=400)
+
+    character_name = cfg.character_name or f"Character {endpoint_num}"
+
+    starter_system = f"""{cfg.system_prompt}
+
+You are tasked with generating a short 1-2 sentence conversation starter for the character "{character_name}".
+Generate an engaging, in-character opening line that would naturally start a conversation.
+Respond with ONLY the conversation starter text, nothing else."""
+
+    messages = [
+        {"role": "system", "content": starter_system},
+        {
+            "role": "user",
+            "content": f"Generate a conversation starter for character: {character_name}",
+        },
+    ]
+
+    full_response = ""
+    async for chunk in stream_llm(cfg, messages):
+        if "content" in chunk:
+            full_response += chunk["content"]
+        elif "error" in chunk:
+            return Response(chunk["error"], status_code=500)
+
+    return {"starter": full_response.strip()}
+
+
 @router.get("/health")
 async def health():
     return {
