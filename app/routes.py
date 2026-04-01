@@ -79,7 +79,12 @@ async def chat(request: Request):
         return Response("Session not found", status_code=400)
 
     prompt = request.query_params.get("prompt", "")
-    num_exchanges = int(request.query_params.get("num_exchanges", "3"))
+    try:
+        num_exchanges = int(request.query_params.get("num_exchanges", "3"))
+    except (TypeError, ValueError):
+        return Response("Invalid num_exchanges value", status_code=400)
+    if not 1 <= num_exchanges <= 30:
+        return Response("num_exchanges must be between 1 and 30", status_code=400)
     starting_speaker = request.query_params.get("starting_speaker", "")
 
     if not state.endpoint1.url or not state.endpoint2.url:
