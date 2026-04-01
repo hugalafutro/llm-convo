@@ -11,6 +11,8 @@
   let currentSpeaker = "";
   let turnIndex = 0;
   let starterGenerationInProgress = false;
+  let generatedStarterText = "";
+  let generatedStarterSpeaker = "";
 
   // ===== DOM refs =====
   const $ = (sel) => document.querySelector(sel);
@@ -127,6 +129,16 @@
       if (saved) el.value = saved;
       el.addEventListener("input", () => saveField(id, el.value));
     });
+  }
+
+  function clearGeneratedStarterIfChanged() {
+    if (!generatedStarterText) {
+      return;
+    }
+    if (dom.promptInput.value.trim() !== generatedStarterText) {
+      generatedStarterText = "";
+      generatedStarterSpeaker = "";
+    }
   }
 
   // ===== Endpoint Connection =====
@@ -316,6 +328,8 @@
 
       if (starterText) {
         dom.promptInput.value = starterText;
+        generatedStarterText = starterText.trim();
+        generatedStarterSpeaker = endpointNum === 1 ? "model1" : "model2";
         const toastPrefix = previousStarter ? "New conversation" : "Conversation";
         toast(
           `${toastPrefix} starter generated for ${name}`,
@@ -382,6 +396,13 @@
   function startChat() {
     const prompt = dom.promptInput.value.trim();
     const numExchanges = dom.numExchanges.value;
+    const startingSpeaker =
+      prompt &&
+      generatedStarterText &&
+      prompt === generatedStarterText &&
+      generatedStarterSpeaker
+        ? generatedStarterSpeaker
+        : "";
 
     if (!prompt) {
       toast("Please enter a prompt", "error");
@@ -403,7 +424,11 @@
     dom.typingIndicator.classList.remove("hidden");
     setModelSelectsDisabled(true);
 
-    const params = new URLSearchParams({ prompt, num_exchanges: numExchanges });
+    const params = new URLSearchParams({
+      prompt,
+      num_exchanges: numExchanges,
+      starting_speaker: startingSpeaker,
+    });
     eventSource = new EventSource(`/chat?${params}`);
 
     eventSource.addEventListener("sender", (e) => {
@@ -411,7 +436,7 @@
       finishCurrentMessage();
       turnIndex++;
 
-      const side = turnIndex % 2 === 1 ? "model2" : "model1";
+      const side = data.speaker === "model1" ? "model1" : "model2";
       currentSpeaker = data.sender;
 
       const msgDiv = document.createElement("div");
@@ -526,6 +551,8 @@
     currentContent = "";
     currentReasoning = "";
     turnIndex = 0;
+    generatedStarterText = "";
+    generatedStarterSpeaker = "";
 
     try {
       await fetch("/clear", { method: "POST" });
@@ -574,6 +601,7 @@
         startChat();
       }
     });
+    dom.promptInput.addEventListener("input", clearGeneratedStarterIfChanged);
   }
 
   if (document.readyState === "loading") {

@@ -44,3 +44,4 @@ class SessionState(BaseModel):
     endpoint2: EndpointConfig = Field(default_factory=EndpointConfig)
     turns: list[Turn] = Field(default_factory=list)
     initial_prompt: str = ""
+    initial_speaker: str = ""

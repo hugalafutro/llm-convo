@@ -90,7 +90,7 @@ def build_messages(
 
     Each model sees:
     - A ``system`` message: its configured prompt plus dialogue framing.
-    - The initial prompt as ``[User]: ...`` only if conversation hasn't started.
+    - The initial human prompt as ``[User]: ...`` when present.
     - Its own prior turns as ``assistant``.
     - The partner's turns as ``user`` with ``[CharacterName]: ...`` prefixes.
     """
@@ -106,9 +106,7 @@ def build_messages(
 
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
 
-    # Only prepend the initial prompt if we haven't started the conversation yet.
-    # After the first turn, the conversation history in state.turns contains all context.
-    if state.initial_prompt and not state.turns:
+    if state.initial_prompt:
         messages.append({"role": "user", "content": f"[User]: {state.initial_prompt}"})
 
     for turn in state.turns:

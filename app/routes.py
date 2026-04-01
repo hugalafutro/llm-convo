@@ -80,29 +80,45 @@ async def chat(request: Request):
 
     prompt = request.query_params.get("prompt", "")
     num_exchanges = int(request.query_params.get("num_exchanges", "3"))
+    starting_speaker = request.query_params.get("starting_speaker", "")
 
     if not state.endpoint1.url or not state.endpoint2.url:
         return Response("Connect both endpoints first", status_code=400)
 
     state.turns.clear()
-    state.initial_prompt = prompt
+    state.initial_prompt = ""
+    state.initial_speaker = (
+        starting_speaker if starting_speaker in {"model1", "model2"} else ""
+    )
+    if prompt:
+        if state.initial_speaker:
+            state.turns.append(Turn(speaker=state.initial_speaker, content=prompt))
+        else:
+            state.initial_prompt = prompt
 
     async def event_stream() -> AsyncIterator[dict]:
+        turn_order = (
+            [("model2", state.endpoint2), ("model1", state.endpoint1)]
+            if state.initial_speaker in {"", "model1"}
+            else [("model1", state.endpoint1), ("model2", state.endpoint2)]
+        )
         for _ in range(num_exchanges):
             if await request.is_disconnected():
                 break
 
-            for target, cfg in [
-                ("model2", state.endpoint2),
-                ("model1", state.endpoint1),
-            ]:
+            for target, cfg in turn_order:
                 sender = cfg.character_name or f"Model {target[-1]}"
                 ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
                 yield {
                     "event": "sender",
                     "data": json.dumps(
-                        {"sender": sender, "timestamp": ts, "model": cfg.model_id}
+                        {
+                            "sender": sender,
+                            "speaker": target,
+                            "timestamp": ts,
+                            "model": cfg.model_id,
+                        }
                     ),
                 }
 
@@ -175,6 +191,7 @@ async def clear(request: Request):
     if state:
         state.turns.clear()
         state.initial_prompt = ""
+        state.initial_speaker = ""
     return {"status": "ok"}
 
 
