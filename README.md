@@ -4,20 +4,21 @@
 
 **LLM Convo** is a small web app that sits between two OpenAI-compatible chat APIs. You connect each side to its own backend (local or remote), type an opening line, and watch the two models trade replies in real time. The server streams the dialogue to your browser with Server-Sent Events.
 
-![LLM Convo](screenshot-new.png)
+<img src="screenshot-new.png" alt="LLM Convo screenshot" width="900" />
 
 ## Features
 
 - **Two endpoints**: Each side has its own URL, optional API key, character name, and optional system prompt. **Connect** checks the backend by calling `GET {your-base-url}/v1/models`.
 - **Model picker**: After a successful connect, a dropdown lists models from that endpoint; your choice is remembered in the browser.
 - **Turn-based dialogue**: You set how many **exchange rounds** to run (1–30). Each round is both models speaking once, in order. The full thread (plus your initial prompt) is sent back into context so the conversation stays coherent.
+- **Conversation starters**: Each side can generate an in-character opening line from its own system prompt and character name. If you send that generated line as-is, that character becomes the first speaker.
 - **Streaming**: Replies stream in as they are generated. **Stop** closes the stream; **Clear** wipes the transcript and resets server-side turn state.
 - **Reasoning-friendly**: If the backend sends thinking tokens (`reasoning` / `reasoning_content`), they appear in a collapsible **Thinking** block above the visible answer.
 - **Per-message stats**: Footer on each completion: timestamp, model id, token count, and tokens per second.
 - **Markdown in bubbles**: Basic formatting (code, bold, italics, paragraphs) with escaping so random model output does not run script in your page.
 - **Dark and light themes**: Toggle in the header; preference is saved locally.
 - **Toasts and connection state**: Inline feedback when things connect, fail, or finish; connect buttons show when each side is live.
-- **Local persistence**: Endpoint fields, keys, names, prompts, and theme live in **browser localStorage** (not on the server).
+- **Local persistence**: Endpoint fields, keys, names, prompts, theme, and per-endpoint model selections are remembered in **browser localStorage** (not on the server).
 - **Docker-ready**: Compose file exposes the UI and includes a health check against `/health`.
 
 ## Run locally
@@ -64,7 +65,7 @@ Examples that work with many setups (adjust host and port):
 - [LM Studio](https://github.com/lmstudio-ai): `http://127.0.0.1:1234`
 - [koboldcpp](https://github.com/LostRuins/koboldcpp): `http://192.168.x.x:5001` (use the host/port where the OpenAI-compatible API is served)
 
-Click **Connect** for each side. When both show connected, enter your opening prompt and press **Send** (or Enter).
+Click **Connect** for each side. When both show connected, either enter your own opening prompt or use **Convo Starter** on one side to generate an in-character opener, then press **Send** (or Enter).
 
 ## Example system prompt
 
