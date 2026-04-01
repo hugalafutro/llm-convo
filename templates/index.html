@@ -1,96 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Convo</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <div id="toast-container" aria-live="polite"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>LLM Convo</title>
+        <link rel="stylesheet" href="/static/css/style.css" />
+    </head>
+    <body>
+        <div id="toast-container" aria-live="polite"></div>
 
-    <header>
-        <h1>LLM Convo</h1>
-        <button id="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
-            <span class="theme-icon"></span>
-        </button>
-    </header>
+        <header>
+            <h1>LLM Convo</h1>
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+                title="Toggle theme"
+            >
+                <span class="theme-icon"></span>
+            </button>
+        </header>
 
-    <main id="chat-container">
-        <section class="endpoint-setup" aria-label="Endpoint configuration">
-            <div class="endpoint-card" data-endpoint="1">
-                <h2>Endpoint 1</h2>
-                <label for="endpoint1-url">URL</label>
-                <input type="url" id="endpoint1-url" placeholder="http://host:port/v1" autocomplete="url">
+        <main id="chat-container">
+            <section class="endpoint-setup" aria-label="Endpoint configuration">
+                <div class="endpoint-card" data-endpoint="1">
+                    <h2>Endpoint 1</h2>
+                    <label for="endpoint1-url">URL</label>
+                    <input
+                        type="url"
+                        id="endpoint1-url"
+                        placeholder="http://host:port/v1"
+                        autocomplete="url"
+                    />
 
-                <label for="endpoint1-key">API Key <span class="optional">(optional)</span></label>
-                <input type="password" id="endpoint1-key" placeholder="sk-...">
+                    <label for="endpoint1-key"
+                        >API Key <span class="optional">(optional)</span></label
+                    >
+                    <input
+                        type="password"
+                        id="endpoint1-key"
+                        placeholder="sk-..."
+                    />
 
-                <label for="endpoint1-name">Character Name</label>
-                <input type="text" id="endpoint1-name" placeholder="Character 1" value="Character 1">
+                    <label for="endpoint1-name">Character Name</label>
+                    <input
+                        type="text"
+                        id="endpoint1-name"
+                        placeholder="Character 1"
+                        value="Character 1"
+                    />
 
-                <label for="endpoint1-prompt">System Prompt <span class="optional">(optional)</span></label>
-                <textarea id="endpoint1-prompt" placeholder="You are..." rows="4"></textarea>
+                    <label for="endpoint1-prompt"
+                        >System Prompt
+                        <span class="optional">(optional)</span></label
+                    >
+                    <textarea
+                        id="endpoint1-prompt"
+                        placeholder="You are..."
+                        rows="4"
+                    ></textarea>
 
-                <button id="connect1" class="connect-btn" type="button" data-endpoint="1">
-                    <span class="spinner hidden"></span>
-                    <span class="btn-text">Connect</span>
+                    <select
+                        id="endpoint1-model"
+                        class="model-select hidden"
+                        disabled
+                    >
+                        <option value="">No models loaded</option>
+                    </select>
+                    <button
+                        id="connect1"
+                        class="connect-btn"
+                        type="button"
+                        data-endpoint="1"
+                    >
+                        <span class="spinner hidden"></span>
+                        <span class="btn-text">Connect</span>
+                    </button>
+                </div>
+
+                <div class="endpoint-card" data-endpoint="2">
+                    <h2>Endpoint 2</h2>
+                    <label for="endpoint2-url">URL</label>
+                    <input
+                        type="url"
+                        id="endpoint2-url"
+                        placeholder="http://host:port/v1"
+                        autocomplete="url"
+                    />
+
+                    <label for="endpoint2-key"
+                        >API Key <span class="optional">(optional)</span></label
+                    >
+                    <input
+                        type="password"
+                        id="endpoint2-key"
+                        placeholder="sk-..."
+                    />
+
+                    <label for="endpoint2-name">Character Name</label>
+                    <input
+                        type="text"
+                        id="endpoint2-name"
+                        placeholder="Character 2"
+                        value="Character 2"
+                    />
+
+                    <label for="endpoint2-prompt"
+                        >System Prompt
+                        <span class="optional">(optional)</span></label
+                    >
+                    <textarea
+                        id="endpoint2-prompt"
+                        placeholder="You are..."
+                        rows="4"
+                    ></textarea>
+
+                    <select
+                        id="endpoint2-model"
+                        class="model-select hidden"
+                        disabled
+                    >
+                        <option value="">No models loaded</option>
+                    </select>
+                    <button
+                        id="connect2"
+                        class="connect-btn"
+                        type="button"
+                        data-endpoint="2"
+                    >
+                        <span class="spinner hidden"></span>
+                        <span class="btn-text">Connect</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="controls" aria-label="Conversation controls">
+                <div class="exchanges-control">
+                    <label for="num-exchanges"
+                        >Exchanges:
+                        <output id="num-exchanges-value">3</output></label
+                    >
+                    <input
+                        type="range"
+                        id="num-exchanges"
+                        min="1"
+                        max="30"
+                        value="3"
+                    />
+                </div>
+            </section>
+
+            <section id="conversation-panel" aria-label="Conversation">
+                <div id="initial-prompt" class="initial-prompt hidden">
+                    <strong>Initial Prompt:</strong>
+                    <span id="initial-prompt-text"></span>
+                </div>
+                <div id="conversation" role="log" aria-live="polite"></div>
+                <div id="typing-indicator" class="typing-indicator hidden">
+                    <span></span><span></span><span></span>
+                </div>
+            </section>
+
+            <section class="input-bar" aria-label="Message input">
+                <input
+                    type="text"
+                    id="prompt-input"
+                    placeholder="Enter your initial prompt here..."
+                    autocomplete="off"
+                />
+                <button id="send-btn" type="button" disabled>Send</button>
+                <button
+                    id="clear-btn"
+                    type="button"
+                    class="secondary-btn"
+                    title="Clear conversation"
+                >
+                    Clear
                 </button>
-                <select id="endpoint1-model" class="model-select hidden" disabled>
-                    <option value="">No models loaded</option>
-                </select>
-            </div>
-
-            <div class="endpoint-card" data-endpoint="2">
-                <h2>Endpoint 2</h2>
-                <label for="endpoint2-url">URL</label>
-                <input type="url" id="endpoint2-url" placeholder="http://host:port/v1" autocomplete="url">
-
-                <label for="endpoint2-key">API Key <span class="optional">(optional)</span></label>
-                <input type="password" id="endpoint2-key" placeholder="sk-...">
-
-                <label for="endpoint2-name">Character Name</label>
-                <input type="text" id="endpoint2-name" placeholder="Character 2" value="Character 2">
-
-                <label for="endpoint2-prompt">System Prompt <span class="optional">(optional)</span></label>
-                <textarea id="endpoint2-prompt" placeholder="You are..." rows="4"></textarea>
-
-                <button id="connect2" class="connect-btn" type="button" data-endpoint="2">
-                    <span class="spinner hidden"></span>
-                    <span class="btn-text">Connect</span>
+                <button
+                    id="stop-btn"
+                    type="button"
+                    class="danger-btn"
+                    disabled
+                    title="Stop generation"
+                >
+                    Stop
                 </button>
-                <select id="endpoint2-model" class="model-select hidden" disabled>
-                    <option value="">No models loaded</option>
-                </select>
-            </div>
-        </section>
+            </section>
+        </main>
 
-        <section class="controls" aria-label="Conversation controls">
-            <div class="exchanges-control">
-                <label for="num-exchanges">Exchanges: <output id="num-exchanges-value">3</output></label>
-                <input type="range" id="num-exchanges" min="1" max="30" value="3">
-            </div>
-        </section>
-
-        <section id="conversation-panel" aria-label="Conversation">
-            <div id="initial-prompt" class="initial-prompt hidden">
-                <strong>Initial Prompt:</strong>
-                <span id="initial-prompt-text"></span>
-            </div>
-            <div id="conversation" role="log" aria-live="polite"></div>
-            <div id="typing-indicator" class="typing-indicator hidden">
-                <span></span><span></span><span></span>
-            </div>
-        </section>
-
-        <section class="input-bar" aria-label="Message input">
-            <input type="text" id="prompt-input" placeholder="Enter your initial prompt here..." autocomplete="off">
-            <button id="send-btn" type="button" disabled>Send</button>
-            <button id="clear-btn" type="button" class="secondary-btn" title="Clear conversation">Clear</button>
-            <button id="stop-btn" type="button" class="danger-btn" disabled title="Stop generation">Stop</button>
-        </section>
-    </main>
-
-    <script src="/static/js/app.js"></script>
-</body>
+        <script src="/static/js/app.js"></script>
+    </body>
 </html>
