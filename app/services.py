@@ -207,4 +207,4 @@ async def stream_llm(
 def _auth_headers(cfg: EndpointConfig) -> dict[str, str]:
     if cfg.api_key:
         return {"Authorization": f"Bearer {cfg.api_key}"}
-    return []
+    return {}
